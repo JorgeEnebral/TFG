@@ -1,0 +1,352 @@
+\documentclass[12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage{lipsum}
+\usepackage{tocloft} 
+\usepackage{hyperref}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\setlength{\jot}{14pt}
+\usepackage{amssymb}
+\usepackage{float}
+
+\usepackage{caption}
+\usepackage{pifont}
+\usepackage{listings}
+\usepackage[table,xcdraw]{xcolor}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  numbers=left,
+  numberstyle=\tiny,
+  frame=none,
+  captionpos=b,
+  breaklines=true,
+  showstringspaces=false
+  }
+\definecolor{darkred}{rgb}{0,0,0} %can change the intensity in [0,1]
+\definecolor{darkgreen}{rgb}{0,0.8,0}
+\definecolor{darkblue}{rgb}{0,0,1}
+\usepackage{hyperref}
+\hypersetup{colorlinks,
+linkcolor=darkred,
+filecolor=darkblue,
+urlcolor=darkred,
+citecolor=darkgreen}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\renewcommand{\tableautorefname}{Table}
+\renewcommand{\figureautorefname}{Figure}
+\renewcommand{\equationautorefname}{Equation}
+\renewcommand{\lstlistingname}{Algorithm}
+\newcommand{\algorithmautorefname}{Algorithm}
+\renewcommand{\contentsname}{\'Indice}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  numbers=left,
+  numberstyle=\tiny,
+  frame=none,
+  captionpos=b,
+  breaklines=true,
+  showstringspaces=false
+  }
+
+  
+\usepackage[
+    backend=biber,
+    style=apa,   % o ieee, numeric, authoryear, etc.
+]{biblatex}
+
+\addbibresource{ref_guerra_cognitiva.bib}
+\addbibresource{ref_psicologia.bib}
+\addbibresource{ref_python.bib}
+\addbibresource{ref_redes_complejas.bib}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CONFIGURATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\projectTitle}{Interacciones y Dinámicas en la Aldea Global:}
+\newcommand{\projectTitlee}{Modelado Matemático y Psicosocial}
+\newcommand{\projectTitleee}{de la Guerra Cognitiva en Redes Complejas}
+\newcommand{\Author}{Jorge Enebral Alonso}
+\newcommand{\Director}{David Martín-Corral Calvo}
+\newcommand{\MonthToSubmit}{Enero }
+\newcommand{\BeginYear}{2025}
+\newcommand{\EndYear}{\number\numexpr\BeginYear+1\relax }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\geometry{top=2.5cm, bottom=4cm, left=2.5cm, right=2.5cm}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.35\textwidth]{../images/Logo_comillas.png}\\[1cm] 
+    {\Huge \textbf{GRADO EN INGENIER\'IA}}\\[0.3cm]
+    {\Huge \textbf{MATEM\'ATICA E INTELIGENCIA}}\\[0.5cm]
+    {\Huge \textbf{ARTIFICIAL}}\\[1.5cm]
+    {\Huge \textbf{TRABAJO FIN DE GRADO}}\\[1.3cm]
+    {\huge \projectTitle}\\[0.5cm]
+    \vspace{20mm}
+    \textbf{Author: \Author}\\[1.0cm]
+    \textbf{Director: \Director}\\[0.5cm]
+    \raisebox {-2cm}[0cm][0cm]{\large Madrid, \MonthToSubmit \EndYear}
+    \vfill
+\end{titlepage}
+
+\setlength{\headheight}{2cm}
+
+% Configuraci\'on del encabezado
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=2cm]{../images/Color_logo_comillas.png}} 
+
+\fancyhead[C]{
+    \hspace{2cm}
+    \textbf{UNIVERSIDAD PONTIFICIA COMILLAS}\\
+    \hspace{2cm}
+    Escuela T\'ecnica Superior de Ingenier\'ia (ICAI)\\
+    \hspace{2cm}
+    Grado en Ingenier\'ia Matem\'atica e Inteligencia Artificial
+}
+
+\newpage
+
+\begin{center}
+    \large \textbf{Declaraci\'on de originalidad}
+\end{center}
+
+{\fontsize{11}{15}\selectfont
+    Declaro, bajo mi responsabilidad, que el Proyecto presentado con el t\'itulo \textbf{\projectTitle} en la ETS de Ingenier\'ia - ICAI de la Universidad Pontificia Comillas en el curso acad\'emico \BeginYear/\EndYear\ es de mi autor\'ia, original e in\'edito y no ha sido presentado con anterioridad a otros efectos. El Proyecto no es plagio de otro, ni total ni parcialmente y la informaci\'on que ha sido tomada de otros documentos est\'a debidamente referenciada.
+    \vspace{5mm}
+
+    \begin{center}
+        {\large \textbf{Uso de Inteligencia Artificial}}\footnote{Esta declaraci\'on se refiere al uso de la Inteligencia Artificial generativa para realizar los documentos del Proyecto (Anexo B y Memoria). No aplica a Proyectos donde, por su naturaleza, deban emplear inteligencia artificial como parte de los mismos (aplicaci\'on de t\'ecnicas de aprendizaje autom\'atico, redes neuronales, an\'alisis de datos...).}
+    \end{center}
+
+    Declaro bajo mi responsabilidad que (indicar la opci\'on correcta):
+
+    \begin{itemize}
+        \item[$\square$] % Sustituye \square por \boxtimes para marcar esta opci\'on  
+        No he utilizado Inteligencia Artificial en la elaboraci\'on del presente documento.
+    
+        \item[$\boxtimes$] % Sustituye \square por \boxtimes para marcar esta opci\'on 
+        He utilizado Inteligencia Artificial en la elaboraci\'on del presente documento y/o del Anexo B siempre en las condiciones permitidas por la Universidad Pontificia Comillas, es decir, aplicando el Nivel 2 de la \href{https://aiassessmentscale.com/}{Escala de Evaluaci\'on de Perkins et al.\ (2024)}: \emph{``La IA puede utilizarse para actividades previas a la tarea, como la lluvia de ideas, la descripci\'on y la investigaci\'on inicial. Este nivel se centra en el uso de la IA para la planificaci\'on, las s\'intesis y la generaci\'on de ideas, pero las evaluaciones deben hacer hincapi\'e en la capacidad de desarrollar y refinar estas ideas de forma independiente''}. En concreto, la Inteligencia Artificial ha sido empleada para:
+    \end{itemize}
+    
+    \begin{center}
+    \renewcommand{\arraystretch}{3}
+    \begin{tabular}{|p{\textwidth}|}
+    \hline
+    {He usado Inteligencia Artificial, prácticamente todas, para:
+    - Investigación, sobre de la parte más de sociales: guerra cognitiva, psicología, sociología y neurociencia.
+    - Desarrollar código.}
+    \vspace{4cm} \\
+    \hline
+    \end{tabular}
+    \end{center}
+    
+    \vspace{1.5em}
+    
+    \begin{center}
+    \renewcommand{\arraystretch}{2}
+    \begin{tabular}{|p{0.95\textwidth}|}
+    \hline
+    \begin{center}
+        \vspace{5mm}
+        (firma aqu\'i)
+    \end{center}
+    \\
+    \hline 
+    Fdo: \Author \\
+    \hline
+    Fecha: \textcolor{red}{XX}/\textcolor{red}{XX}/\EndYear\\
+    \hline
+    \end{tabular}
+    \end{center}
+    
+    \begin{center}
+        \textbf{Autorizaci\'on para la entrega del Proyecto}
+    \end{center}
+    
+    \begin{center}
+    \renewcommand{\arraystretch}{2}
+    \begin{tabular}{|p{0.45\textwidth} |p{0.45\textwidth} |
+    }
+        \hline
+        \begin{center} \vspace{-8mm} El Director del Proyecto \end{center} &
+        \begin{center} \vspace{-8mm} El co-Director del Proyecto (si aplica) \end{center}\\
+        \hline
+        \begin{center}
+            \vspace{5mm}
+            (firma aqu\'i)
+        \end{center}
+        & 
+        \begin{center}
+            \vspace{5mm}
+            (firma aqu\'i)
+        \end{center}
+        \\
+        \hline
+        Fdo: \Director & Fdo: \CoDirector \\
+        \hline
+        Fecha: \textcolor{red}{XX}/\textcolor{red}{XX}/\EndYear 
+        & 
+        Fecha: \textcolor{red}{XX}/\textcolor{red}{XX}/\EndYear\\
+        \hline
+    \end{tabular}
+    \end{center} 
+}
+
+\newpage
+
+{\fontsize{17}{20}
+    \begin{center}
+        {\large Agradecimientos}
+        
+    \end{center}
+}
+
+\newpage
+
+
+\section*{Resumen}
+\textcolor{red}{Resumen aqu\'i}
+
+\textbf{Palabras clave}: \textcolor{red}{Palabra clave 1}; \textcolor{red}{Palabra clave 2}; .... 
+
+\section*{Resumen ejecutivo}
+\textcolor{red}{Resumen ejecutivo ($\sim$2 p\'aginas) aqu\'i}
+
+\newpage
+\section*{Abstract}
+\textcolor{red}{Abstract goes here}
+
+\textbf{Keywords}: \textcolor{red}{Keyword1}; \textcolor{red}{Keyword2}; .... 
+
+\section*{Executive Summary}
+\textcolor{red}{Executive Summary ($\sim$2 pages) goes here}
+
+\newpage
+\tableofcontents
+\thispagestyle{fancy}
+\newpage
+\setcounter{page}{1}
+\fancyfoot[C]{
+    \begin{center}
+        \thepage
+    \end{center}
+} 
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\footskip}{0.8cm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introducci\'on %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introducci\'on}
+\textcolor{red}{Aqu\'i va la introducci\'on}
+
+\textcolor{blue}
+{Objetivo de la secci\'on: introducir el problema, por qu\'e debe resolverse este problema y qu\'e mejoras aporta la soluci\'on}
+{Problemas:
+- Desinformación masiva
+- LLM pueden modificar la opinion de personas con mucha facilidad}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Trabajos relacionados %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Trabajos Relacionados}\label{sec:related} 
+\textcolor{red}{Aqu\'i van los trabajos relacionados / estado del arte}
+
+\textcolor{blue}{Objetivo de la secci\'on: identificar el vac\'io en el estado del arte en el que vamos a desarrollar la soluci\'on}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% Objetivos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Motivaci\'on y Objetivos}
+
+\subsection{Motivaci\'on}
+\textcolor{red}{Por qu\'e es importante resolver o resolver parcialmente el vac\'io que has identificado}
+
+\textcolor{blue}{Objetivo de la secci\'on: convencer al lector de que tu proyecto es necesario}
+
+\subsection{Objetivos}
+\textcolor{red}{Enumera un objetivo principal y al menos dos objetivos secundarios}
+
+\textcolor{blue}{Objetivo de la secci\'on: definir qu\'e parte exacta del vac\'io resuelves con el proyecto}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Metodolog\'ia %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Metodolog\'ia}\label{sec:methodology}
+\textcolor{red}{Aqu\'i va la metodolog\'ia / desarrollos / descripci\'on del algoritmo}
+
+\textcolor{blue}{Objetivo de la secci\'on: describir en detalle los desarrollos realizados durante el proyecto, incluyendo desarrollos matem\'aticos y de programaci\'on.}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Experimentos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Resultados Experimentales}\label{sec:results}
+
+\textcolor{red}{C\'omo se ha probado el algoritmo (especificaciones del simulador, especificaciones computacionales, experimentos...), descripci\'on de las m\'etricas de evaluaci\'on (precisi\'on del algoritmo, tiempo de c\'omputo, ...), casos de uso, comparaciones con otros m\'etodos, ...}
+
+\textcolor{blue}{Objetivo de la secci\'on: demostrar cuantitativa y cualitativamente qu\'e tal funcionan los desarrollos realizados}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Conclusiones %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusiones y Trabajo Futuro}\label{sec:conclusion}
+\textcolor{blue}{Objetivo de la secci\'on: describir en qu\'e medida se han alcanzado los objetivos, en qu\'e otros campos pueden aplicarse los desarrollos, qu\'e mejoras pueden incorporarse al proyecto...}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Referencias %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliograf\'ia} \label{sec:bibliography}
+\textcolor{red}{Incluye las citas necesarias en formato \texttt{bibtex} en el archivo \texttt{ref\_annex\_b.bib}. Se listar\'an aqu\'i autom\'aticamente seg\'un las utilices usando el comando \texttt{\textbackslash cite} como \cite{einstein1905}.} 
+
+\printbibliography[heading=none]
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Anexos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+\section{T\'itulo del Anexo A}
+\textcolor{red}{Incluye cuantos anexos sean necesarios. El objetivo de los anexos es incluir informaci\'on importante pero demasiado extensa para incluir en el texto del proyecto (p.ej., gr\'aficas extra o tablas completas de experimentos/hiperpar\'ametros. Pregunta a tu director cuando no est\'es seguro.}
+
+\end{document}
+
+
+
+

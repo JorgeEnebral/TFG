@@ -1,0 +1,324 @@
+\documentclass[12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage{lipsum}
+\usepackage{tocloft} 
+\usepackage{hyperref}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\setlength{\jot}{14pt}
+\usepackage{amssymb}
+\usepackage{float}
+
+\usepackage{caption}
+\usepackage{pifont}
+\usepackage{listings}
+\usepackage[table,xcdraw]{xcolor}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  numbers=left,
+  numberstyle=\tiny,
+  frame=none,
+  captionpos=b,
+  breaklines=true,
+  showstringspaces=false
+  }
+\definecolor{darkred}{rgb}{0,0,0} %can change the intensity in [0,1]
+\definecolor{darkgreen}{rgb}{0,0.8,0}
+\definecolor{darkblue}{rgb}{0,0,1}
+\usepackage{hyperref}
+\hypersetup{colorlinks,
+linkcolor=darkred,
+filecolor=darkblue,
+urlcolor=darkred,
+citecolor=darkgreen}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\renewcommand{\tableautorefname}{Table}
+\renewcommand{\figureautorefname}{Figure}
+\renewcommand{\equationautorefname}{Equation}
+\renewcommand{\lstlistingname}{Algorithm}
+\newcommand{\algorithmautorefname}{Algorithm}
+\renewcommand{\contentsname}{\'Indice}
+
+
+
+\usepackage[
+    backend=biber,
+    style=apa,   % o ieee, numeric, authoryear, etc.
+]{biblatex}
+
+\addbibresource{ref_annex_b.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CONFIGURATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\projectTitle}{Interacciones y Dinámicas en la Aldea Global:}
+\newcommand{\projectTitlee}{Modelado Matemático y Psicosocial}
+\newcommand{\projectTitleee}{de la Guerra Cognitiva en Redes Complejas}
+\newcommand{\Author}{Jorge Enebral Alonso}
+\newcommand{\Director}{David Martín-Corral Calvo}
+\newcommand{\MonthToSubmit}{Enero }
+\newcommand{\BeginYear}{2025}
+\newcommand{\EndYear}{\number\numexpr\BeginYear+1\relax }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\geometry{top=2.5cm, bottom=4cm, left=2.5cm, right=2.5cm}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.35\textwidth]{../images/Logo_comillas.png}\\[1cm] 
+    {\Huge \textbf{GRADO EN INGENIER\'IA}}\\[0.3cm]
+    {\Huge \textbf{MATEM\'ATICA E INTELIGENCIA}}\\[0.5cm]
+    {\Huge \textbf{ARTIFICIAL}}\\[1.5cm]
+    {\Huge \textbf{ANEXO B}}\\[1.3cm]
+    {\huge \projectTitle}\\[0.5cm]
+    {\huge \projectTitlee}\\[0.5cm]
+    {\huge \projectTitleee}\\[0.5cm]
+    \vspace{10mm}
+    \textbf{Author: \Author}\\[1.0cm]
+    \textbf{Director: \Director}\\[0.5cm]
+    \raisebox {-2cm}[0cm][0cm]{\large Madrid, \MonthToSubmit \EndYear}
+    \vfill
+\end{titlepage}
+
+\setlength{\headheight}{2cm}
+
+% Configuraci\'on del encabezado
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=2cm]{../images/Color_logo_comillas.png}} 
+
+\fancyhead[C]{
+    \hspace{2cm}
+    \textbf{UNIVERSIDAD PONTIFICIA COMILLAS}\\
+    \hspace{2cm}
+    Escuela T\'ecnica Superior de Ingenier\'ia (ICAI)\\
+    \hspace{2cm}
+    Grado en Ingenier\'ia Matem\'atica e Inteligencia Artificial
+}
+
+\newpage
+
+\newpage
+\tableofcontents
+\thispagestyle{fancy}
+\newpage
+\setcounter{page}{1}
+\fancyfoot[C]{
+    \begin{center}
+        \thepage
+    \end{center}
+} 
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\footskip}{0.8cm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introducci\'on %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introducción}
+Antes de la era digital todas las relaciones entre humanos eran analógicas, siendo el grafo de relaciones humanas muy fragmentado; las personas se vinculaban con familia, amigos y poco más. Sin embargo, tras la llegada de la radio, la televisión y, más específicamente, las redes sociales, las relaciones humanas tienen lugar en dos dimensiones en paralelo: el mundo analógico (igual al ya mencionado) y el mundo digital. Con la llegada del mundo digital se ha conectado tanto el mundo que McLuhan, en su libro \textit{Understanding Media}, introdujo el concepto de aldea global. Ahora, además, ya no solo somos meros consumidores de información, sino también portadores y distribuidores de información.\vspace{1em}
+
+Hoy en día la información puede moverse en segundos de una punta del mundo a otra y tener consecuencias allí donde impacta. Al estar todos ``tan cerca'' y enterarnos de todo lo que hacen los demás, el conflicto y la fricción aumentan como bien vemos en las redes sociales, dando lugar a un caldo de cultivo perfecto para llevar a cabo la guerra cognitiva, término adoptado por la OTAN en 2017 como la guerra del futuro. En la guerra cognitiva un grupo de influencia busca manipular los mecanismos de cognición de sus objetivos con el fin de alterar la percepción de la realidad, es decir, influir en lo que piensan, en cómo piensan y, finalmente, en cómo actúan. (\cite{GuerraCogniticaDirecto2025}).  El campo de batalla es el cerebro humano, y los inputs vienen principalmente de redes sociales, por lo que se puede modelar todo el flujo de información. \vspace{1em}
+
+En el proyecto se diseñará la topología dinámica de la aldea global con un grafo, compuesta por agentes (nodos), relaciones (enlaces) y mensajes. Cada componente (nodos, enlaces y mensajes) tendrá sus respectivos parámetros, que interarán replicar la realidad. Se creará un modelo teórico lo más completo posible sobre las interacciones humanas y las reacciones basado en la psicología, la neurociencia, la sociología y las matemáticas, y se harán simulaciones con un modelo más reducido. \vspace{1em}
+
+Además, se introducirá un sistema de puntuación asociado a cada agente, valorando la robustez ante la manipulación. Las simulaciones tendrán como objetivo analizar cómo las decisiones individuales (individuos, influencers y medios organizados) afectan a la dinámica colectiva, aplicando técnicas de análisis de datos, visualización y modelado de redes para estudiar patrones emergentes y estrategias óptimas de interacción social. \vspace{1em}
+
+Finalmente, se reflexionará profundamente sobre las aplicaciones de esta tecnología desde el punto de vista ético y empresarial, ejemplos de usos, y se analizarán posibles propuestas para seguir investigando. 
+
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Trabajos relacionados %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Trabajos Relacionados}\label{sec:related} 
+
+\subsection{El comportamiento cooperativo se propaga en cascada}
+Este paper muestra varios puntos clave: la cooperación se propaga en cascada hasta tres grados se influencia, $\;A \rightarrow B \rightarrow C \rightarrow D\;$, aunque D pueda no saber nada de A; la influencia de una interacción perdura en el tiempo, no solo es instantánea; experimentos muestran que tras juntar aleatoriamente agentes tienden a ser amigos agentes parecidos (homofilia); hay la reciprocidad en acciones buenas. (\cite{CooperativeCascades}). \vspace{0.5em}
+
+\subsection{Difusión y cascadas en redes}
+Este paper tiene un enfoque más práctico, aplicado al márquetin. Cuatro claves: efecto saturación, ya que más recomendaciones no implica mayor probabilidad de compra, de hecho, puede disminuir por saturación; las cascadas son pequeñas y de poca profundidad, pero cuando se vuelven virales tienen una estructura de árbol compleja; añadir varios nuevos influencers reduce el rendimiento, ya que se solapa con otros; presenta un algoritmo CELF para colocar influencers para detectar una propagación lo antes posible. (\cite{BehaviorCascades}). \vspace{0.5em}
+
+\subsection{Modelo de segregación de Schelling}
+Este modelo explica que aunque individualmente los agentes de una red sean tolerantes, fijando cada agente un umbral alto de tolerancia con respecto a agentes distintos, como colectivo la sociedad puede terminar completamente segregada, como si los agentes no fuesen nada tolerantes. (\cite{SchellingModel}). \vspace{0.5em}
+
+\subsection{Hacia un modelo computacional de normas sociales}
+Este paper propone que agentes puedan comprender y seguir normas sociales de manera realista, cuantificándolas mediante valores que una cultura considera deseables. Adopta métricas tangibles, intangibles y creencias concretas de cada agente. (\cite{SocialComputationalModel2018}). \vspace{0.5em}
+
+\subsection{Revisión de modelos computacionales de confianza y reputación}
+Este paper analiza la diferencia entre modelos cognitivos basados en estados mentales y creencias subyacentes con modelos de teoría de juegos basados en probabilidades. Los modelos pueden nutrirse de experiencias directas, informacion de testigos y sociológica, o prejuicios. Tiene en cuenta la reputación y evalúa si el modelo distingue contextos. Destaca que se debe mezclar ambos tipos de modelos, y que las puntuaciones calculadas deben ir acompañadas de qué tan confiables son. (\cite{ReputationModels}).
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% Objetivos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Motivación y Objetivos}
+
+\subsection{Motivación}
+Hasta ahora todos los estudios que se han hecho sobre psicología, relaciones humanas y teoría de redes son aislados: utilizar modelos psicológicos o probabilísticos para modelar comportamientos, pero no ambos; aplicar teoría de redes para verificar pocos comportamientos humanos; hacer el grafo de la sociedad solo teniendo en cuenta las redes sociales o el mundo analógico.
+
+En este proyecto se intentará unificar la creación de un grafo dinámico que modele las relaciones entre personas de la sociedad teniendo en cuenta el mundo analógico y el digital, cada uno con sus particularidades, junto con modelos psicológicos y de teoría de juegos. Se bombardearán a mensajes en la red a los agentes, a ver cómo evoluciona la manipulación social. 
+
+\subsection{Objetivos}
+
+\subsubsection{Descifrar el comportamiento humano}
+En primer lugar, hay que ver todas o las variables más importantes a la hora de determinar las relaciones e interacciones humanas. Para ello se investigará sobre psicología y sociología. El fin último es, una vez se sepan todas las variables relevantes tanto de agentes, relaciones y mensajes, modelar matemáticamente las relaciones humanas.
+
+\subsubsection{Arquitectura de la aldea global}
+En segundo lugar, debido a que no hay datasets sobre relaciones de la sociedad (solo los tienen las bigtech), hay que construir el grafo inicial basado en conocimiento humano para que sea lo más realista posible.
+
+\subsubsection{Desarrollar el modelo computacional}
+En tercer lugar, programar el grafo en python con una interfaz que permita modificar la simulación a gusto del usuario y preparar las consultas / gráficos para obtener los resultados simulados.
+
+\subsubsection{Ver qué decisiones afectan a individuos y a colectivos}
+Y finalmente, se verán en los resultados tras las simulaciones y el análisis si se verifica el comportamiento cooperativo en cascada, homofilia, reciprocidad, segregación, la viralidad de mensajes, etc... de papers ya existentes. Y cómo afecta a la manipulación los diferentes tipos de mensajes.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Metodolog\'ia %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Metodología de trabajo}\label{sec:methodology}
+La metodología adoptada para este proyecto combina la investigación teórica con el desarrollo de software experimental. Se creará un git del proyecto, un entorno virtual en linux para el desarrollo del código y la memoria se redactará progresivamente. Al inicio de cada semana se elaborará el plan para la semana detallado con las tareas, que será integrado en la memoria.
+
+Dado el carácter interdisciplinar (psicología, sociología, teoría de redes, computación) se ha establecido un flujo de trabajo flexible dividido en cinco bloques principales.
+
+\subsection{Tarea 1: Revisión Bibliográfica y Marco Teórico}
+Estudio exhaustivo de papers sobre psicología (\cite{InstitutoTavistock2011}), sociolgía, teoría de redes (\cite{EasleyKleinberg2010}) y softwares de simulación. Elaborar el grafo teórico lo más completo posible.
+
+\subsection{Tarea 2: Diseño del Modelo Formal}
+Definición matemática de los parámetros de nodos, relaciones y mensajes que circularán por la red. Se hará el modelado matemático del modelo teórico y de uno práctico más sencillo para simulaciones.
+
+\subsection{Tarea 3: Desarrollo del Entorno de Simulación}
+Preparación del entorno, descarga de librerías y ver compatibilidad, comenzar con la codificación del grafo. Primero será estático y con pocos parámetros, según se vaya perfeccionando se hará el grafo dinámico y se añadirán más parámetros. Se fijará una semilla para que se puedan reproducir los resultados.
+
+\subsection{Tarea 4: Ejecución de Experimentos y Análisis Estadístico}
+Se creará una interfaz para poder simular dependiendo de los parámetros inciales introducidos, y utlilizarán librerías para procesar los resultados y visualizarlos. Además, se calculará los requerimientos computacionales necesarios dependiendo de número de agentes y parámetros.
+
+\subsection{Tarea 5: Reflexión ética y empresarial, y propuestas para seguir investigando}
+Dados los resultados obtenidos se reflexionará sobre las aplicaciones que se pueden dar a la tecnología desarrollada, desde el punto de vista ético como empresarial. Además se propondrán nuevas vías para investigar a partir del trabajo, principalmente relacionado con Graph Neural Networks, Reinforcement Learning (\cite{SuttonBarto2018}) y LLMs. 
+
+
+\subsection{Cronograma} \label{sec:cronogram}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|ccccc|}
+\hline
+& 
+\multicolumn{5}{c|}{\EndYear}
+\\ \hline
+& 
+\multicolumn{1}{c|}{Ene}                      & 
+\multicolumn{1}{c|}{Feb}                      & 
+\multicolumn{1}{c|}{Mar}                      & 
+\multicolumn{1}{c|}{Abr}                      & 
+\multicolumn{1}{c|}{May}                      
+\\ \hline
+Tarea 1 & 
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Enero
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Febrero
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Marzo
+\multicolumn{1}{c|}{}                         & % Abril   
+\multicolumn{1}{c|}{}                           % Mayo
+\\ \hline
+Tarea 2 &    
+\multicolumn{1}{c|}{}                         & % Enero
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Febrero
+\multicolumn{1}{c|}{}                         & % Marzo
+\multicolumn{1}{c|}{}                         & % Abril   
+\multicolumn{1}{c|}{}                           % Mayo
+\\ \hline
+Tarea 3 &    
+\multicolumn{1}{c|}{}                         & % Enero
+\multicolumn{1}{c|}{}                         & % Febrero
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Marzo
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Abril   
+\multicolumn{1}{c|}{}                           % Mayo
+\\ \hline
+Tarea 4 &    
+\multicolumn{1}{c|}{}                         & % Enero
+\multicolumn{1}{c|}{}                         & % Febrero
+\multicolumn{1}{c|}{}                         & % Marzo
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}} & % Abril   
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}}  % Mayo
+\\ \hline
+Tarea 5 &    
+\multicolumn{1}{c|}{}                         & % Enero
+\multicolumn{1}{c|}{}                         & % Febrero
+\multicolumn{1}{c|}{}                         & % Marzo
+\multicolumn{1}{c|}{}                         & % Abril   
+\multicolumn{1}{c|}{\cellcolor[HTML]{C0C0C0}}  % Mayo
+\\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Recurso s%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Recursos} \label{sec:resources}
+
+\subsection{Software} \label{sec:resources_software}
+Se utilizará github como sistema de control de versiones, el código se realizará en WSL con un entorno virtual de UV. Lenguaje de programación python. Librerías:
+
+- Para ABMs (agent based models)  está ``Mesa'' con su librería para visualizar ``Solara''.
+
+- Para grafos ``NetworkX'' con librerías para visualizar como ``Plotly''.
+
+- SaaS de IAs: (\cite{Perplexity}) (\cite{Gemini}) (\cite{ChatGPT})
+
+\subsection{Hardware} \label{sec:resources_hardware}
+Portátil HP Victus con: \vspace{1em}
+
+- CPU 13th Gen Intel(R) Core(TM) i7-13700H. 2,4 GHz \vspace{1em}
+
+- RAM: 29,7 GB \vspace{1em}
+
+- GPU: NVIDIA GeForce RTX 4060 Laptop \vspace{1em}
+
+- VRAM: 22,9 GB (14,9 GB compartida, 8 GB dedicada) \vspace{1em}
+
+Si no es suficiente se accederá al cluster de ICAI.
+
+\subsection{Set de datos} \label{sec:resources_datasets}
+No hay ningún dataset, por lo que se generará la red social compleja y los parámetros de los nodos, relaciones y mensajes basados en conocimientos de psicología y sociología.
+
+\newpage 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Referencias %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliografía} \label{sec:bibliography}
+
+\printbibliography[type=article, title={Artículos Científicos}, heading=subbibliography]
+
+\printbibliography[type=book, title={Libros}, heading=subbibliography]
+
+\printbibliography[subtype={video}, title={Material Audiovisual}]
+
+\printbibliography[subtype={IA}, title={Herramientas de IA}]
+
+\end{document}
+
+
+
+

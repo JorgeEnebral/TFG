@@ -1,0 +1,19 @@
+
+
+# --- Extensiones Permitidas ---
+# (En Git, por defecto se sube todo, así que solo ignoramos lo que no queremos)
+*.aux
+*.bbl
+*.bCF
+*.blg
+*.log
+*.out
+*.xml
+*.gz
+*.toc
+
+
+# --- Reglas de Carpetas ---
+
+# Bloquear la carpeta /libros completa
+/libros/
