@@ -11,9 +11,10 @@
 *.xml
 *.gz
 *.toc
-
+*.gitignore
 
 # --- Reglas de Carpetas ---
 
 # Bloquear la carpeta /libros completa
 /libros/
+/.venv/
