@@ -16,5 +16,4 @@
 # --- Reglas de Carpetas ---
 
 # Bloquear la carpeta /libros completa
-/libros/
 /.venv/
