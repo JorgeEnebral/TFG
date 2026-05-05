@@ -1,17 +1,98 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Python
+# ══════════════════════════════════════════════════════════════════════════════
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 
+# Entornos virtuales
+.venv/
+venv/
+env/
 
-# --- Extensiones Permitidas ---
-# (En Git, por defecto se sube todo, así que solo ignoramos lo que no queremos)
+# Distribución / empaquetado
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Caché de herramientas
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.cache/
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Jupyter
+# ══════════════════════════════════════════════════════════════════════════════
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LaTeX — artefactos de compilación
+# ══════════════════════════════════════════════════════════════════════════════
 *.aux
 *.bbl
-*.bCF
+*.bcf
 *.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
 *.log
-*.out
-*.xml
-*.gz
+*.lot
+*.nav
+*.run.xml
+*.snm
+*.synctex.gz
+*.synctex(busy)
 *.toc
+*.vrb
 
-# --- Reglas de Carpetas ---
-/.venv/
-/.mypy_cache/
+# Directorio de salida de compilación (PDFs generados por LaTeX)
+# Para añadir un PDF compilado manualmente: git add -f ruta/out/archivo.pdf
+**/out/
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Simulación — salidas generadas
+# ══════════════════════════════════════════════════════════════════════════════
+*.gif
+*.mp4
+*.avi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sistema operativo
+# ══════════════════════════════════════════════════════════════════════════════
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ══════════════════════════════════════════════════════════════════════════════
+# IDEs y editores
+# ══════════════════════════════════════════════════════════════════════════════
+# VS Code (ignorar configuración local de usuario, conservar settings del proyecto)
+.vscode/*.log
+
+# JetBrains
+.idea/
+
+# Vim / Emacs
+*.swp
+*.swo
+*.swn
+\#*\#
+.\#*
