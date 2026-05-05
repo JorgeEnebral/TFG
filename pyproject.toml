@@ -1,0 +1,91 @@
+[project]
+name = "tfg"
+version = "0.1.0"
+license = { text = "MIT" }
+description = "Interacciones y Dinámicas en la Aldea Global: Modelado Matemático y Psicosocial de la Guerra Cognitiva en Redes Complejas"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10.9",
+    "mesa>=3.5.1",
+    "mypy>=1.20.2",
+    "networkx>=3.6.1",
+    "pylint>=4.0.5",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
+
+# ── Ruff: linter y formatter ───────────────────────────────────────────────────
+[tool.ruff]
+line-length = 88            # mismo que black por compatibilidad
+target-version = "py313"    # versión de Python del proyecto
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors: indentación, espacios, sintaxis básica
+    "W",    # pycodestyle warnings: líneas en blanco, whitespace innecesario
+    "F",    # pyflakes: imports no usados, variables no definidas, nombres duplicados
+    "I",    # isort: orden y agrupación de imports
+    "C90",  # McCabe: complejidad ciclomática (cuántos caminos tiene una función)
+    "N",    # pep8-naming: snake_case, CamelCase, UPPER_CASE donde corresponde
+    "UP",   # pyupgrade: sugiere sintaxis moderna (f-strings, | para unions, etc.)
+    "B",    # bugbear: patrones que no son error pero suelen ser bugs
+]
+ignore = [
+    "E501", # largo de línea: lo maneja ruff format, no hace falta en el linter
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10         # funciones con más de 10 caminos lógicos fallan
+
+[tool.ruff.format]
+quote-style = "double"      # comillas dobles (estilo black)
+indent-style = "space"      # espacios, no tabs
+line-ending = "lf"          # LF en todos los SO, consistente con .gitattributes
+
+# ── Mypy: chequeo de tipos ─────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.13"
+strict = true               # activa todas las flags estrictas de mypy:
+                            # --disallow-untyped-defs, --no-implicit-optional, etc.
+ignore_missing_imports = true  # no falla si una librería no tiene stubs de tipos
+                               # (equivale al --ignore-missing-imports del Makefile,
+                               # así no hace falta pasarlo como argumento)
+
+# ── Pylint ─────────────────────────────────────────────────────────────────────
+[tool.pylint.main]
+fail-under = 8.0            # mismo valor que FAIL_UNDER en el Makefile
+                            # si la puntuación baja de 8/10 el comando falla
+
+[tool.pylint.messages_control]
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    # quitá estos si querés exigir docstrings en todo
+]
+
+[tool.pylint.format]
+max-line-length = 88        # consistente con ruff
+
+# ── Pytest ─────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]       # donde pytest busca tests (variable SRC_TESTS del Makefile)
+addopts = [
+    "--cov=src",            # mide cobertura del código en src/
+    "--cov-report=term-missing",  # muestra en terminal qué líneas no tienen cobertura
+    "--cov-report=html",    # genera htmlcov/ con reporte visual navegable
+    "-v",                   # verbose: muestra cada test individualmente
+]
+
+# ── Coverage ───────────────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["src"]            # qué código medir
+omit = [
+    "tests/*",
+    "**/__init__.py",
+]
+
+[tool.coverage.report]
+fail_under = 80             # el pipeline falla si la cobertura baja del 80%
+show_missing = true

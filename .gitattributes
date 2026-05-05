@@ -1,0 +1,52 @@
+# Normalizar todos los archivos de texto a LF en el repositorio y en checkout.
+# Esto evita conflictos de línea entre Windows (CRLF) y Linux/macOS (LF).
+* text=auto eol=lf
+
+# ── Código fuente ──────────────────────────────────────────────────────────────
+*.py        text eol=lf
+*.ipynb     text eol=lf
+*.toml      text eol=lf
+*.lock      text eol=lf
+*.json      text eol=lf
+
+# ── Scripts de sistema ─────────────────────────────────────────────────────────
+*.sh        text eol=lf
+*.bash      text eol=lf
+*.ps1       text eol=lf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# ── LaTeX / tesis ──────────────────────────────────────────────────────────────
+*.tex       text eol=lf
+*.bib       text eol=lf
+*.sty       text eol=lf
+*.cls       text eol=lf
+*.dtx       text eol=lf
+
+# ── Configuración y documentación ─────────────────────────────────────────────
+*.md        text eol=lf
+*.txt       text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.csv       text eol=lf
+*.tsv       text eol=lf
+*.svg       text eol=lf
+
+# ── Binarios — sin conversión de líneas ni diff de texto ──────────────────────
+*.pdf       binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.eps       binary
+*.tiff      binary
+*.tif       binary
+*.ico       binary
+*.docx      binary
+*.pptx      binary
+*.xlsx      binary
+*.zip       binary
+*.gz        binary
+*.tar       binary
+*.7z        binary
+*.rar       binary
