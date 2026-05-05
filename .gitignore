@@ -11,9 +11,7 @@
 *.xml
 *.gz
 *.toc
-*.gitignore
 
 # --- Reglas de Carpetas ---
-
-# Bloquear la carpeta /libros completa
 /.venv/
+/.mypy_cache/
