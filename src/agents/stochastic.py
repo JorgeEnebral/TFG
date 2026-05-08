@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-# Heredar de nuestro `BaseAgent`, no directamente de `mesa.Agent`.
 from src.agents.base import BaseAgent
 
 if TYPE_CHECKING:
