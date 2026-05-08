@@ -6,6 +6,7 @@ description = "Interacciones y Dinámicas en la Aldea Global: Modelado Matemáti
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "ipykernel>=7.2.0",
     "matplotlib>=3.10.9",
     "mesa>=3.5.1",
     "mypy>=1.20.2",
