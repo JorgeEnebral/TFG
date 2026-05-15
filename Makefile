@@ -1,5 +1,5 @@
 # Declare all phony targets
-.PHONY: install format lint clean test all
+.PHONY: install format lint fix-pylint clean test all
 
 # Default target
 .DEFAULT_GOAL := all

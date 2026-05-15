@@ -63,7 +63,11 @@ disable = [
     "C0114",  # missing-module-docstring
     "C0115",  # missing-class-docstring
     "C0116",  # missing-function-docstring
-    # quitá estos si querés exigir docstrings en todo
+    "C0301",  # line-too-long: lo gestiona ruff; comentarios no los toca
+    "R0902",  # too-many-instance-attributes: clases de config tienen muchos campos
+    "R0903",  # too-few-public-methods: clases de constantes/helpers
+    "R0913",  # too-many-arguments: factorías y builders legítimos
+    "R0917",  # too-many-positional-arguments: ídem
 ]
 
 [tool.pylint.format]

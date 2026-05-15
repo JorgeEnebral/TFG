@@ -34,23 +34,23 @@ import json
 # `asdict` convierte un dataclass en dict (útil para CSV y JSON).
 # `field` permite valores por defecto "no triviales" (listas, dicts).
 from dataclasses import asdict, dataclass, field
-
 from pathlib import Path
 
 
 @dataclass
-class Trace:
-    """
-    Un registro = un evento de envío individual.
+class Interaction:
+    """Una interacción = un evento de envío individual.
 
-    Atributos:
-      - `trace_id`    : id de la traza lógica a la que pertenece este envío.
-                        Varios envíos pueden compartirlo si forman parte
-                        de una cadena causal (memoria de agente).
-      - `message_id`  : id único del envío. Monotónico desde 0; nunca se repite.
-      - `timestep`    : paso de simulación (0, 1, 2, ...).
-      - `source_node` : nodo emisor del grafo.
-      - `target_node` : nodo receptor del grafo.
+    Attributes:
+        trace_id: Id de la traza lógica a la que pertenece este envío.
+            Varios envíos pueden compartirlo si forman parte de una cadena
+            causal (memoria de agente).
+        message_id: Id único del envío. Monotónico desde 0; nunca se repite.
+        timestep: Paso de simulación (0, 1, 2, ...).
+        source_node: Nodo emisor del grafo.
+        target_node: Nodo receptor del grafo.
+        previous_message_ids: Ids de mensajes anteriores de la misma traza
+            que motivaron esta interacción.
     """
 
     trace_id: int
@@ -58,38 +58,40 @@ class Trace:
     timestep: int
     source_node: int
     target_node: int
+    previous_message_ids: list[int] = field(default_factory=list)
 
 
 @dataclass
 class DataCollector:
-    """
-    Acumula registros y los exporta.
+    """Acumula registros y los exporta.
 
-    Atributos:
-      - `traces` (list[Trace]): lista cronológica de registros. Se rellena
-        vía `record()`. `field(default_factory=list)` evita el bug
-        de "default mutable": si pusiéramos `traces: list = []`,
-        TODAS las instancias compartirían la misma lista.
-      - `_next_message_id` (int): contador autoincremental para `message_id`.
-        Garantiza unicidad global.
-      - `_next_trace_id` (int): contador autoincremental para `trace_id`.
-        Se usa cuando alguien llama a `record()` sin pasar trace_id (la
-        decisión es "espontánea") o cuando un agente pide explícitamente
-        empezar una nueva traza con `new_trace_id()`.
+    Attributes:
+        interactions: Lista cronológica de interacciones. Se rellena vía `record()`.
+            `field(default_factory=list)` evita el bug de "default mutable":
+            si pusiéramos `interactions: list = []`, todas las instancias
+            compartirían la misma lista.
+        _next_message_id: Contador autoincremental para `message_id`.
+            Garantiza unicidad global.
+        _next_trace_id: Contador autoincremental para `trace_id`. Se usa
+            cuando alguien llama a `record()` sin pasar trace_id (la decisión
+            es "espontánea") o cuando un agente pide explícitamente empezar
+            una nueva traza con `new_trace_id()`.
     """
 
-    traces: list[Trace] = field(default_factory=list)
+    interactions: list[Interaction] = field(default_factory=list)
     _next_message_id: int = 0
     _next_trace_id: int = 0
 
     def new_trace_id(self) -> int:
-        """
-        Reserva y devuelve un trace_id nuevo.
+        """Reserva y devuelve un trace_id nuevo.
 
         Lo usa quien INICIA una traza lógica (el agente que toma una
         decisión sin antecedentes). Un agente que reacciona a un mensaje
         previo NO debe llamar a este método: debe heredar el trace_id
         del mensaje al que responde.
+
+        Returns:
+            Un nuevo trace_id entero, único e irrepetible.
         """
         tid = self._next_trace_id
         self._next_trace_id += 1
@@ -101,72 +103,110 @@ class DataCollector:
         source: int,
         target: int,
         trace_id: int | None = None,
-    ) -> Trace:
-        """
-        Registra un evento de envío y devuelve el Trace creado.
-
-        Parámetros:
-          - `timestep`, `source`, `target`: datos del envío.
-          - `trace_id`: si None, se reserva un trace_id nuevo (decisión
-            espontánea). Si se pasa, este envío se asocia a una traza
-            preexistente (caso "memoria del agente": responde/reenvía/
-            reacciona a algo previo).
-
-        El `message_id` se asigna SIEMPRE automáticamente; no se acepta
-        como parámetro porque debe ser único e irrepetible.
+        previous_message_ids: list[int] | None = None,
+    ) -> Interaction:
+        """Registra un evento de envío y devuelve el Interaction creado.
 
         Lo llama `NetworkModel.step()` por cada `(src, tgt)` en
-        `active_messages` al final de cada paso.
+        `active_messages` al final de cada paso. El `message_id` se asigna
+        siempre automáticamente; no se acepta como parámetro porque debe
+        ser único e irrepetible.
+
+        Args:
+            timestep: Paso de simulación en el que ocurre el envío.
+            source: Node id del emisor.
+            target: Node id del receptor.
+            trace_id: Id de traza preexistente para asociar este envío
+                (caso "memoria del agente": responde/reenvía/reacciona a
+                algo previo). Si es None, se reserva un trace_id nuevo
+                (decisión espontánea).
+            previous_message_ids: id de los mensajes anteriores con la misma
+                traza relevantes para haber decidido la interacción
+
+        Returns:
+            El `Interaction` recién creado y ya añadido a `self.traces`.
         """
-        # Política por defecto: si no nos dan trace_id, asumimos que
-        # este envío inicia una traza nueva. Cuando los agentes tengan
-        # memoria, deberán pasar el trace_id que recibieron.
+        # Sin trace_id, el envío inicia una traza nueva.
+        # Cuando los agentes tengan memoria, deberán pasar el trace_id que recibieron.
         if trace_id is None:
             trace_id = self.new_trace_id()
 
-        trace = Trace(
+        interaction = Interaction(
             trace_id=trace_id,
+            previous_message_ids=previous_message_ids or [],
             message_id=self._next_message_id,
             timestep=timestep,
             source_node=source,
             target_node=target,
         )
-        self.traces.append(trace)
-        # Incrementar DESPUÉS de crear, no antes: queremos que el
-        # primer message_id sea 0, no 1.
+        self.interactions.append(interaction)
         self._next_message_id += 1
-        return trace
+
+        return interaction
 
     def __len__(self) -> int:
-        # `len(collector)` -> nº de registros guardados.
-        # OJO: por culpa de este __len__, `bool(collector)` es False cuando
-        # está vacío. Eso nos mordió antes en NetworkModel: `dc or DataCollector()`
-        # creaba uno nuevo en vez de usar el pasado. Solucionado con
-        # `if dc is not None else ...` explícito en el modelo.
-        return len(self.traces)
+        """Número de interacciones acumuladas.
 
-    def by_timestep(self, t: int) -> list[Trace]:
-        # Filtro perezoso por paso de simulación.
-        return [tr for tr in self.traces if tr.timestep == t]
-
-    def by_trace(self, trace_id: int) -> list[Trace]:
+        Returns:
+            Cantidad total de eventos registrados en `self.interactions`.
         """
-        Devuelve todos los envíos que pertenecen a una traza lógica,
-        ordenados por timestep para reconstruir la cadena causal.
+        return len(self.interactions)
+
+    def filter_by_timestep(self, t: int) -> list[Interaction]:
+        """Devuelve todos las interacciones de un paso de simulación dado.
+
+        Args:
+            t: Paso de simulación a filtrar.
+
+        Returns:
+            Lista de `Interaction` cuyo `timestep == t`.
+        """
+        return [tr for tr in self.interactions if tr.timestep == t]
+
+    def filter_by_trace(self, trace_id: int) -> dict[str, object]:
+        """Devuelve los envíos de una traza lógica ordenados por timestep.
 
         Útil cuando los agentes tengan memoria: permite ver toda la
         secuencia de decisiones encadenadas a partir de un mismo origen.
+
+        Args:
+            trace_id: Id de la traza lógica a recuperar.
+
+        Returns:
+            Diccionario de la traza agrupado por timesteps, y cada interacción
+            con su message_id, sus previous_message_ids, source_node, target_node
         """
-        return sorted(
-            (tr for tr in self.traces if tr.trace_id == trace_id),
-            key=lambda tr: tr.timestep,
+        interactions = sorted(
+            (tr for tr in self.interactions if tr.trace_id == trace_id),
+            key=lambda tr: (tr.timestep, tr.source_node),
         )
 
+        by_timestep: dict[str, list[dict[str, object]]] = {}
+        for tr in interactions:
+            bucket = str(tr.timestep)
+            if bucket not in by_timestep:
+                by_timestep[bucket] = []
+            by_timestep[bucket].append(
+                {
+                    "message_id": tr.message_id,
+                    "previous_message_ids": tr.previous_message_ids,
+                    "source_node": tr.source_node,
+                    "target_node": tr.target_node,
+                }
+            )
+
+        return {"trace_id": trace_id, "by_timestep": by_timestep}
+
     def to_csv(self, path: str | Path) -> Path:
-        """Exporta todos los registros a CSV. Devuelve la ruta escrita."""
+        """Exporta todos las interacciones a un fichero CSV.
+
+        Args:
+            path: Ruta de destino. Las carpetas padre se crean si no existen.
+
+        Returns:
+            La ruta efectivamente escrita, como `Path`.
+        """
         path = Path(path)
-        # Crea carpetas padre si no existen (idempotente). Útil porque
-        # los outputs viven en src/data/ que puede haberse limpiado.
         path.parent.mkdir(parents=True, exist_ok=True)
         # `newline=""` es la convención recomendada por la doc de csv:
         # evita líneas en blanco extra en Windows.
@@ -179,35 +219,50 @@ class DataCollector:
                     "timestep",
                     "source_node",
                     "target_node",
+                    "previous_message_ids",
                 ],
             )
             writer.writeheader()
-            for tr in self.traces:
-                # `asdict(tr)` convierte el dataclass a un dict {campo: valor}.
-                # `DictWriter` escribe respetando el orden de `fieldnames`.
+            for tr in self.interactions:
                 writer.writerow(asdict(tr))
         return path
 
     def to_json(self, path: str | Path) -> Path:
-        """Exporta a JSON (lista de objetos). Útil para herramientas web."""
+        """Exporta las interacciones a un fichero JSON.
+
+        El JSON producido es una lista de objetos, útil para herramientas
+        web o para post-procesado con `pandas.read_json()`.
+
+        Args:
+            path: Ruta de destino. Las carpetas padre se crean si no existen.
+
+        Returns:
+            La ruta efectivamente escrita, como `Path`.
+        """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             # `indent=2` -> humano-legible. Si el fichero crece mucho,
             # se puede quitar para ahorrar bytes.
-            json.dump([asdict(tr) for tr in self.traces], f, indent=2)
+            json.dump([asdict(tr) for tr in self.interactions], f, indent=2)
         return path
 
     def summary(self) -> dict[str, int]:
-        """Resumen rápido (total mensajes, trazas únicas, timesteps)."""
-        # Manejo del caso vacío explícitamente: si llamamos a `max()` sobre
-        # un iterable vacío Python lanza ValueError.
-        if not self.traces:
+        """Resumen rápido de las interacciones acumuladas.
+
+        Returns:
+            Diccionario con tres claves:
+              - `total_messages`: total de envíos registrados.
+              - `total_traces`: número de trazas lógicas distintas.
+              - `timesteps`: número de pasos cubiertos (max timestep + 1).
+            Si no hay interacciones, todos los valores son 0.
+        """
+        if not self.interactions:
             return {"total_messages": 0, "total_traces": 0, "timesteps": 0}
         return {
-            "total_messages": len(self.traces),
+            "total_messages": len(self.interactions),
             # `set()` deduplica los trace_id para contar trazas únicas.
-            "total_traces": len({tr.trace_id for tr in self.traces}),
+            "total_traces": len({tr.trace_id for tr in self.interactions}),
             # +1 porque los timesteps son 0-indexed.
-            "timesteps": max(tr.timestep for tr in self.traces) + 1,
+            "timesteps": max(tr.timestep for tr in self.interactions) + 1,
         }

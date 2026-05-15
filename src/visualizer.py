@@ -8,7 +8,7 @@ Tres clases independientes, todas con estilo "dark":
                                (llama a `model.step()` en cada frame).
   - `DegreeDistributionPlot` : histograma estático de grado del grafo.
                                No depende de la dinámica.
-  - `MessageHeatmap`         : matriz origen×destino del nº de mensajes.
+  - `MessageHeatmap`         : matriz origen X destino del nº de mensajes.
                                Depende del DataCollector tras la sim.
 
 Cada visualizador es independiente: NO se obliga a usar todos. Se pueden
@@ -19,9 +19,8 @@ una clase nueva que herede el estilo `_DarkStyle`.
 from __future__ import annotations
 
 # `Counter` es un dict especializado en contar repeticiones.
-# Lo usamos en MessageHeatmap para sumar mensajes por par (src, tgt).
+# Se usa en MessageHeatmap para sumar mensajes por par (src, tgt).
 from collections import Counter
-
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -33,28 +32,28 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 
 # Tipo de los Axes para anotaciones (mejora autocomplete en IDE).
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from src.datacollector import DataCollector
 from src.model import NetworkModel
 
 
 class _DarkStyle:
-    """
-    Constantes de color del tema "dark" compartido por los visualizadores.
+    """Constantes de color del tema "dark" compartido por los visualizadores.
 
     Es una clase sin estado (solo atributos de clase). Convención `_xxx`
     -> "uso interno del módulo". Centralizamos colores aquí para tocar
-    UN sitio si queremos cambiar la paleta.
+    un único sitio si queremos cambiar la paleta.
 
-    Atributos (todos `str`, hex):
-      - BG          : fondo (figura y axes).
-      - EDGE        : aristas en reposo.
-      - EDGE_ACTIVE : aristas con mensaje activo (rosa fluorescente).
-      - NODE_FIRE   : nodo que dispara este paso (amarillo).
-      - NODE_RECV   : nodo que recibe (verde).
-      - NODE_IDLE   : nodo en reposo (azul).
-      - TEXT        : texto principal.
-      - SUBTEXT     : texto secundario, ticks, leyendas.
+    Attributes:
+        BG: Fondo (figura y axes), en hex.
+        EDGE: Aristas en reposo.
+        EDGE_ACTIVE: Aristas con mensaje activo (rosa fluorescente).
+        NODE_FIRE: Nodo que dispara este paso (amarillo).
+        NODE_RECV: Nodo que recibe (verde).
+        NODE_IDLE: Nodo en reposo (azul).
+        TEXT: Texto principal.
+        SUBTEXT: Texto secundario, ticks, leyendas.
     """
 
     BG = "#0f1419"
@@ -68,22 +67,22 @@ class _DarkStyle:
 
 
 class NetworkAnimator:
-    """
-    Anima el grafo en tiempo real mientras avanza la simulación.
+    """Anima el grafo en tiempo real mientras avanza la simulación.
 
     Es el visualizador más complejo: combina `FuncAnimation` con la
     función `_draw_frame` que (1) avanza un paso del modelo y (2) repinta.
 
-    Atributos:
-      - `model`        : el NetworkModel que vamos a "tickear" cada frame.
-      - `sim_time`     : nº de frames totales (= nº de pasos de simulación).
-      - `interval_ms`  : ms entre frames (afecta a la velocidad del GIF).
-      - `layout_seed`  : semilla del spring_layout (posiciones reproducibles).
-      - `figsize`      : tamaño de la figura (pulgadas).
-      - `title_suffix` : texto extra para el título (p.ej. "p_fire = 0.2").
-      - `pos`          : dict {node_id: (x, y)} con las posiciones FIJAS.
-                         Se calcula UNA vez para que los nodos no salten.
-      - `fig`, `ax`    : objetos matplotlib donde se dibuja.
+    Attributes:
+        model: NetworkModel que se "tickea" en cada frame.
+        sim_time: Número de frames totales (= nº de pasos de simulación).
+        interval_ms: Milisegundos entre frames (afecta a la velocidad del GIF).
+        layout_seed: Semilla del `spring_layout` (posiciones reproducibles).
+        figsize: Tamaño de la figura (pulgadas).
+        title_suffix: Texto extra para el título (p.ej. "p_fire = 0.2").
+        pos: Dict `{node_id: (x, y)}` con las posiciones fijas. Se calcula
+            una vez para que los nodos no salten entre frames.
+        fig: Figura matplotlib donde se dibuja.
+        ax: Axes matplotlib asociado a `fig`.
     """
 
     def __init__(
@@ -95,6 +94,16 @@ class NetworkAnimator:
         figsize: tuple[float, float] = (10, 8),
         title_suffix: str = "",
     ) -> None:
+        """Inicializa el animador y precalcula el layout.
+
+        Args:
+            model: NetworkModel que se va a animar.
+            sim_time: Número total de pasos (= frames) a generar.
+            interval_ms: Milisegundos entre frames.
+            layout_seed: Semilla del `spring_layout` para reproducibilidad.
+            figsize: Tamaño de la figura en pulgadas.
+            title_suffix: Texto extra que se concatena al título.
+        """
         self.model = model
         self.sim_time = sim_time
         self.interval_ms = interval_ms
@@ -102,26 +111,30 @@ class NetworkAnimator:
         self.figsize = figsize
         self.title_suffix = title_suffix
 
-        # Layout spring-force precalculado UNA vez. Si lo recalculáramos
+        # Layout spring-force precalculado UNA vez. Si se recalculara
         # por frame los nodos saltarían y la animación sería inservible.
         # `k=1.5` regula la separación ideal entre nodos.
         self.pos = nx.spring_layout(model.graph, seed=layout_seed, k=1.5)
 
         # `plt.subplots()` crea figura + un único Axes.
         self.fig, self.ax = plt.subplots(figsize=figsize)
-        # Aplicamos el fondo oscuro tanto a la figura entera como al área
+        # Aplica el fondo oscuro tanto a la figura entera como al área
         # del axes (sin ambos, se ven márgenes blancos).
         self.fig.patch.set_facecolor(_DarkStyle.BG)
         self.ax.set_facecolor(_DarkStyle.BG)
 
     def _draw_frame(self, _frame: int) -> tuple[Axes]:
-        """
-        Función que `FuncAnimation` llamará una vez por frame.
+        """Avanza la simulación un paso y repinta el frame.
 
-        El argumento `_frame` (con guión bajo) es el número de frame que
-        nos pasa matplotlib; no lo usamos pero su firma es obligatoria.
-        Devolvemos `(ax,)` (tupla con un elemento) para cumplir el
-        contrato de FuncAnimation con blit, aunque blit=False aquí.
+        Es la función que `FuncAnimation` llama una vez por frame.
+
+        Args:
+            _frame: Número de frame que pasa matplotlib. No se usa, pero
+                la firma es obligatoria.
+
+        Returns:
+            Tupla `(ax,)` para cumplir el contrato de `FuncAnimation`
+            con blit (aunque aquí `blit=False`).
         """
         ax = self.ax
         ax.clear()
@@ -139,8 +152,8 @@ class NetworkAnimator:
             g, self.pos, ax=ax, edge_color=_DarkStyle.EDGE, width=1.0, alpha=0.5
         )
 
-        # Si hay mensajes en este paso, los dibujamos como flechas brillantes.
-        # Construimos un DiGraph efímero con SOLO esos pares para usar el
+        # Si hay mensajes en este paso, se dibujan como flechas brillantes.
+        # Crea un DiGraph efímero con SOLO esos pares para usar el
         # soporte de flechas de NetworkX.
         if self.model.active_messages:
             dg = nx.DiGraph()
@@ -225,10 +238,14 @@ class NetworkAnimator:
         return (ax,)
 
     def animate(self) -> FuncAnimation:
-        """
-        Crea el objeto FuncAnimation. NO lo dispara solo; hay que
-        llamar a `save_gif()` o `show()` (o asignarlo a una variable
-        viva, si no Python lo recolectaría).
+        """Crea el objeto `FuncAnimation` que orquesta la animación.
+
+        NO la dispara por sí solo; hay que llamar a `save_gif()` o
+        `show()` (o asignar el resultado a una variable viva; si se
+        descarta, Python lo recolectaría y la animación se congelaría).
+
+        Returns:
+            Un `FuncAnimation` configurado con `_draw_frame` como callback.
         """
         return FuncAnimation(
             self.fig,
@@ -236,13 +253,21 @@ class NetworkAnimator:
             frames=self.sim_time,
             interval=self.interval_ms,
             repeat=False,
-            # blit=False: redibujamos todo cada frame. Más simple y robusto
+            # blit=False: redibuja todo cada frame. Más simple y robusto
             # que blit=True (que requiere devolver SOLO los artists modificados).
             blit=False,
         )
 
     def save_gif(self, path: str | Path) -> Path:
-        """Renderiza la animación a un GIF con PillowWriter."""
+        """Renderiza la animación a un GIF con `PillowWriter`.
+
+        Args:
+            path: Ruta del GIF de salida. Las carpetas padre se crean
+                si no existen.
+
+        Returns:
+            La ruta efectivamente escrita, como `Path`.
+        """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         anim = self.animate()
@@ -254,35 +279,50 @@ class NetworkAnimator:
         return path
 
     def show(self) -> None:
-        """Muestra la animación en una ventana matplotlib (requiere display)."""
+        """Muestra la animación en una ventana matplotlib.
+
+        Requiere un display gráfico disponible.
+        """
         # OJO: hay que mantener viva la referencia al FuncAnimation en una
-        # variable local; si la perdiéramos, Python la recolectaría y la
+        # variable local; si se perdiera, Python la recolectaría y la
         # animación se "congelaría". `plt.show()` mantiene el event loop.
         self.animate()
         plt.tight_layout()
         plt.show()
 
     def close(self) -> None:
-        """Libera recursos de la figura cuando ya no se necesite."""
+        """Libera los recursos de la figura matplotlib asociada."""
         plt.close(self.fig)
 
 
 class DegreeDistributionPlot:
-    """
-    Histograma del grado de los nodos.
+    """Histograma del grado de los nodos.
 
-    Solo depende de la TOPOLOGÍA (no de la dinámica). Útil para
+    Solo depende de la topología (no de la dinámica). Útil para
     caracterizar la red: detectar power-laws (BA), bell-curves (ER), etc.
 
-    Atributos:
-      - `graph` (nx.Graph): el grafo a analizar.
+    Attributes:
+        graph: Grafo a analizar.
     """
 
     def __init__(self, graph: nx.Graph) -> None:
+        """Inicializa el plot.
+
+        Args:
+            graph: Grafo de NetworkX cuyo grado se va a representar.
+        """
         self.graph = graph
 
-    def render(self, path: str | Path | None = None):
-        # `g.degree()` devuelve un iterable de `(nodo, grado)`. Solo nos
+    def render(self, path: str | Path | None = None) -> Figure:
+        """Genera el histograma de grado.
+
+        Args:
+            path: Ruta donde guardar la figura. Si es None, no se persiste.
+
+        Returns:
+            La figura `matplotlib.figure.Figure` generada.
+        """
+        # `g.degree()` devuelve un iterable de `(nodo, grado)`. Solo
         # interesa el grado: lista por comprensión `d for _, d`.
         degrees = [d for _, d in self.graph.degree()]
 
@@ -291,7 +331,7 @@ class DegreeDistributionPlot:
         ax.set_facecolor(_DarkStyle.BG)
 
         # Histograma con 20 bins. Para datasets con cola larga (BA real)
-        # convendría escala log; lo dejamos lineal por simplicidad.
+        # convendría escala log; se deja lineal por simplicidad.
         ax.hist(degrees, bins=20, color=_DarkStyle.NODE_RECV, edgecolor="white")
         ax.set_xlabel("Grado", color=_DarkStyle.TEXT)
         ax.set_ylabel("Frecuencia", color=_DarkStyle.TEXT)
@@ -301,7 +341,7 @@ class DegreeDistributionPlot:
         for spine in ax.spines.values():
             spine.set_color(_DarkStyle.SUBTEXT)
 
-        # Si nos pasan ruta, guardamos. Si no, devolvemos la figura para
+        # Si se pasa ruta, se guarda. Si no, devuelve la figura para
         # que el caller decida (mostrarla, embebida en notebook, etc.).
         if path is not None:
             path = Path(path)
@@ -312,27 +352,40 @@ class DegreeDistributionPlot:
 
 
 class MessageHeatmap:
-    """
-    Heatmap de número de mensajes por par (origen, destino).
+    """Heatmap de número de mensajes por par (origen, destino).
 
-    Mapa cuadrado N×N donde N=nº de nodos; cada celda (i, j) es el
-    número total de mensajes de i->j. Útil para detectar "canales
+    Mapa cuadrado N×N donde N = nº de nodos; cada celda (i, j) es el
+    número total de mensajes de i -> j. Útil para detectar "canales
     privilegiados" o asimetrías.
 
-    Atributos:
-      - `data_collector` : DataCollector con las trazas.
-      - `num_nodes`      : tamaño del lado del heatmap.
+    Attributes:
+        data_collector: DataCollector con las trazas.
+        num_nodes: Tamaño del lado del heatmap.
     """
 
     def __init__(self, data_collector: DataCollector, num_nodes: int) -> None:
+        """Inicializa el heatmap.
+
+        Args:
+            data_collector: DataCollector con las trazas a visualizar.
+            num_nodes: Número de nodos del grafo (lado de la matriz).
+        """
         self.data_collector = data_collector
         self.num_nodes = num_nodes
 
-    def render(self, path: str | Path | None = None):
+    def render(self, path: str | Path | None = None) -> Figure:
+        """Genera el heatmap de mensajes por par (origen, destino).
+
+        Args:
+            path: Ruta donde guardar la figura. Si es None, no se persiste.
+
+        Returns:
+            La figura `matplotlib.figure.Figure` generada.
+        """
         # Counter cuenta repeticiones de claves automáticamente.
         # Más legible que un dict manual con `+= 1`.
         counter: Counter[tuple[int, int]] = Counter(
-            (tr.source_node, tr.target_node) for tr in self.data_collector.traces
+            (tr.source_node, tr.target_node) for tr in self.data_collector.interactions
         )
 
         # Matriz N×N inicializada a 0. Lista de listas en lugar de numpy
@@ -340,7 +393,7 @@ class MessageHeatmap:
         matrix = [[0] * self.num_nodes for _ in range(self.num_nodes)]
         for (s, t), c in counter.items():
             # Salvaguarda: en grafos SNAP los node_ids no son contiguos
-            # ni empiezan en 0. Si superan `num_nodes`, los ignoramos
+            # ni empiezan en 0. Si superan `num_nodes`, se ignoran
             # silenciosamente para no salirnos de la matriz.
             if s < self.num_nodes and t < self.num_nodes:
                 matrix[s][t] = c
