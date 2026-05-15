@@ -26,15 +26,14 @@ from src.graphs.base import BaseGraph
 
 
 class ErdosRenyiGraph(BaseGraph):
-    """
-    Grafo Erdős-Rényi G(n, p).
+    """Grafo Erdős-Rényi G(n, p).
 
-    Atributos:
-      - `num_nodes` (int): número de nodos n.
-      - `edge_prob` (float en [0, 1]): probabilidad p de cada arista.
-      - `seed` (int | None): heredado de BaseGraph; sembrado de NetworkX.
-      - `connected` (bool): si True, postprocesa el grafo con
-            `ensure_connected()` para que no haya componentes aisladas.
+    Attributes:
+        num_nodes: Número de nodos n.
+        edge_prob: Probabilidad p en [0, 1] de cada arista.
+        connected: Si True, postprocesa el grafo con `ensure_connected()`
+            para que no haya componentes aisladas.
+        seed: Heredado de `BaseGraph`; semilla del generador de NetworkX.
     """
 
     def __init__(
@@ -44,7 +43,15 @@ class ErdosRenyiGraph(BaseGraph):
         seed: int | None = None,
         connected: bool = True,
     ) -> None:
-        # Llamamos al padre para guardar `seed` e inicializar la caché `_graph`.
+        """Inicializa la configuración del grafo Erdős-Rényi.
+
+        Args:
+            num_nodes: Número de nodos n.
+            edge_prob: Probabilidad p de cada arista.
+            seed: Semilla del generador.
+            connected: Si True, fuerza conexión añadiendo aristas mínimas.
+        """
+        # Llama al padre para guardar `seed` e inicializar la caché `_graph`.
         super().__init__(seed=seed)
 
         self.num_nodes = num_nodes
@@ -52,23 +59,28 @@ class ErdosRenyiGraph(BaseGraph):
         self.connected = connected
 
     def build(self) -> nx.Graph:
+        """Construye el grafo Erdős-Rényi.
+
+        Returns:
+            Grafo `nx.Graph` no dirigido con `num_nodes` nodos. Si
+            `self.connected` es True, está garantizado conexo.
+        """
         # Generador estándar de NetworkX. Devuelve un `nx.Graph` no dirigido.
         g = nx.erdos_renyi_graph(n=self.num_nodes, p=self.edge_prob, seed=self.seed)
-        
+
         if self.connected:
             g = self.ensure_connected(g)
         return g
 
 
 class BarabasiAlbertGraph(BaseGraph):
-    """
-    Grafo Barabási-Albert (preferential attachment).
+    """Grafo Barabási-Albert (preferential attachment).
 
-    Atributos:
-      - `num_nodes` (int): n total de nodos finales.
-      - `m` (int): cuántas aristas añade cada nodo nuevo al entrar.
-        El grado mínimo final es `m`; los hubs aparecen por acumulación.
-      - `seed` (int | None): semilla del generador.
+    Attributes:
+        num_nodes: Número total de nodos finales.
+        m: Cuántas aristas añade cada nodo nuevo al entrar. El grado
+            mínimo final es `m`; los hubs aparecen por acumulación.
+        seed: Semilla del generador.
     """
 
     def __init__(
@@ -77,30 +89,40 @@ class BarabasiAlbertGraph(BaseGraph):
         m: int,
         seed: int | None = None,
     ) -> None:
-        
+        """Inicializa la configuración del grafo Barabási-Albert.
+
+        Args:
+            num_nodes: Número total de nodos finales.
+            m: Aristas que añade cada nodo nuevo al entrar.
+            seed: Semilla del generador.
+        """
         super().__init__(seed=seed)
         self.num_nodes = num_nodes
         self.m = m
 
     def build(self) -> nx.Graph:
+        """Construye el grafo Barabási-Albert.
+
+        Returns:
+            Grafo `nx.Graph` siempre conexo por construcción.
+        """
         # `barabasi_albert_graph` es siempre conexo por construcción
         # cada nodo nuevo se conecta a `m` existentes
         return nx.barabasi_albert_graph(n=self.num_nodes, m=self.m, seed=self.seed)
 
 
 class WattsStrogatzGraph(BaseGraph):
-    """
-    Grafo Watts-Strogatz small-world.
+    """Grafo Watts-Strogatz small-world.
 
-    Atributos:
-      - `num_nodes` (int): n nodos en el anillo inicial.
-      - `k` (int): cada nodo está conectado a sus `k` vecinos más próximos
-        en el anillo (debe ser par para que el anillo sea simétrico).
-      - `rewire_prob` (float en [0, 1]): probabilidad de recablear cada arista.
-        * `p = 0` -> red regular pura (mucho clustering, caminos largos).
-        * `p = 1` -> casi aleatoria (poco clustering, caminos cortos).
-        * `p ~ 0.1` -> régimen "small-world".
-      - `seed` (int | None): semilla.
+    Attributes:
+        num_nodes: Número de nodos en el anillo inicial.
+        k: Cada nodo está conectado a sus `k` vecinos más próximos en el
+            anillo (debe ser par para que el anillo sea simétrico).
+        rewire_prob: Probabilidad en [0, 1] de recablear cada arista.
+            `p = 0` -> red regular pura (mucho clustering, caminos largos).
+            `p = 1` -> casi aleatoria (poco clustering, caminos cortos).
+            `p ~ 0.1` -> régimen "small-world".
+        seed: Semilla del generador.
     """
 
     def __init__(
@@ -110,15 +132,28 @@ class WattsStrogatzGraph(BaseGraph):
         rewire_prob: float,
         seed: int | None = None,
     ) -> None:
-        
+        """Inicializa la configuración del grafo Watts-Strogatz.
+
+        Args:
+            num_nodes: Número de nodos en el anillo inicial.
+            k: Vecinos más próximos en el anillo (par).
+            rewire_prob: Probabilidad de recablear cada arista.
+            seed: Semilla del generador.
+        """
         super().__init__(seed=seed)
         self.num_nodes = num_nodes
         self.k = k
         self.rewire_prob = rewire_prob
 
     def build(self) -> nx.Graph:
-        # `p` aquí es la prob de recableo, no de arista. 
-        # NetworkX puede producir grafos no conexos si `p` es alta y `k` baja, 
+        """Construye el grafo Watts-Strogatz.
+
+        Returns:
+            Grafo `nx.Graph` small-world. Suele ser conexo por construcción
+            salvo combinaciones extremas de `rewire_prob` y `k` bajos.
+        """
+        # `p` aquí es la prob de recableo, no de arista.
+        # NetworkX puede producir grafos no conexos si `p` es alta y `k` baja,
         # pero por construcción suele ser conexo.
         return nx.watts_strogatz_graph(
             n=self.num_nodes, k=self.k, p=self.rewire_prob, seed=self.seed

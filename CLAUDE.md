@@ -1,59 +1,62 @@
-# CLAUDE.md
+# Workflow Orchestration
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 1. Plan Node Default
 
-## Project
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately – don’t keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
 
-**TFG — "Interacciones y Dinámicas en la Aldea Global: Modelado Matemático y Psicosocial de la Guerra Cognitiva en Redes Complejas"**
-Bachelor's thesis (IMAT, Comillas). Author: Jorge Enebral. Director: David Martín-Corral.
+## 2. Subagent Strategy
 
-The project models **cognitive warfare** (information/influence campaigns) using agent-based modelling (ABM) on complex networks, combining a Python simulation with a LaTeX thesis document.
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One tack per subagent for focused execution
 
-## Environment
+## 3. Self-Improvement Loop
 
-- Python 3.13, virtualenv at `.venv/`
-- Activate: `.venv\Scripts\Activate.ps1`
-- Install dependencies: `pip install -r requirements.txt`
-  - Core runtime deps (`mesa`, `matplotlib`, `networkx`) are used in the simulation but not fully listed in `requirements.txt` — install them manually if needed.
+- After ANY correction from the user: update `tasks/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
 
-## Running the simulation
+## 4. Verification Before Done
 
-```powershell
-python src/network_simulation.py                        # defaults: 12 nodes, 40 steps, saves simulation.gif
-python src/network_simulation.py --nodes 30 --time 60  # custom run
-python src/network_simulation.py --show                 # open live window (requires display)
-python src/network_simulation.py --no-gif --show        # live only, no file output
-```
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: “Would a staff engineer approve this?”
+- Run tests, check logs, demonstrate correctness
 
-Full CLI options: `--nodes`, `--edge-prob`, `--fire-prob`, `--time`, `--interval`, `--seed`, `--no-gif`, `--show`, `--out`.
+## 5. Demand Elegance (Balanced)
 
-Run the notebook:
-```powershell
-jupyter notebook src/networkx_grafos.ipynb
-```
+- For non-trivial changes: pause and ask “is there a more elegant way?”
+- If a fix feels hacky: “Knowing everything I know now, implement the elegant solution”
+- Skip this for simple, obvious fixes – don’t over-engineer
+- Challenge your own work before presenting it
 
-## Code architecture (`src/network_simulation.py`)
+## 6. Autonomous Bug Fixing
 
-Three-layer design, all in one file:
+- When given a bug report: just fix it. Don’t ask for hand-holding
+- Point at logs, errors, failing tests – then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
 
-1. **`MessageAgent` (Mesa agent)** — each agent fires a message to a random neighbor with probability `fire_probability` each step. Fires are recorded on the model.
+-----
 
-2. **`NetworkModel` (Mesa model)** — wraps a NetworkX graph. Maintains `active_messages` (current step) and `message_history` (all steps). Agents are indexed by node id in `agent_by_node`.
+# Task Management
 
-3. **`run_simulation()` (visualizer)** — builds an Erdős–Rényi graph (swappable with any `nx.*` generator), instantiates the model, and drives a `FuncAnimation` that calls `model.step()` each frame. Node colors: yellow = firing, green = receiving, blue = idle.
+1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
+1. **Verify Plan**: Check in before starting implementation
+1. **Track Progress**: Mark items complete as you go
+1. **Explain Changes**: High-level summary at each step
+1. **Document Results**: Add review section to `tasks/todo.md`
+1. **Capture Lessons**: Update `tasks/lessons.md` after corrections
 
-The graph topology is intentionally decoupled: swap `nx.erdos_renyi_graph(...)` in `run_simulation()` for any NetworkX generator (Barabási–Albert, Watts–Strogatz, SBM, etc.) to test different network structures.
+-----
 
-## Notebook (`src/networkx_grafos.ipynb`)
+# Core Principles
 
-A reference catalog of NetworkX graph generators — classic, random, lattice, named, directed, and advanced types — each with a dark-themed visualization and a property table. Useful for picking graph topologies to plug into the simulation.
-
-## Thesis document
-
-Written in LaTeX. Source at `Memoria/tfg.tex`, bibliography at `Memoria/ref_memoria.bib`, compiled output at `Memoria/out/tfg.pdf`. Annexes follow the same pattern under `Anexo A/` and `Anexo B/`.
-
-## Research notes
-
-`Fuentes/IA/*.md` — AI-generated research summaries covering cognitive warfare doctrine (NATO, EU, China, Russia), Python tools for ABM/graph analysis, random graph models, and the cybersecurity dynamics framework extrapolated to cognitive warfare.
-
-**Always read `Fuentes/IA/guerra_cognitiva.md` at the start of every session.** It is the primary theoretical document of the thesis — a comprehensive treatment of cognitive warfare covering definitions, history, NATO doctrine, network dynamics, actors, and defensive resilience. All simulation design and thesis writing decisions should be grounded in it.
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what’s necessary. Avoid introducing bugs.

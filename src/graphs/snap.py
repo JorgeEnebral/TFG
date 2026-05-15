@@ -3,8 +3,8 @@ Descarga y carga datasets del repositorio SNAP (Stanford Network Analysis
 Project) sin necesidad de la librería oficial Snap.py.
 
 Por qué SNAP: contiene grafos REALES (Twitter, Facebook ego nets, citaciones
-arXiv, emails de Enron, web de Stanford...). 
-Interesa probar los modelos no solo en grafos sintéticos sino también 
+arXiv, emails de Enron, web de Stanford...).
+Interesa probar los modelos no solo en grafos sintéticos sino también
 en topologías reales que exhiben los sesgos típicos de las redes sociales humanas.
 
 Este módulo expone DOS clases:
@@ -23,8 +23,8 @@ import gzip
 # `shutil.copyfileobj` para volcar streams binarios sin cargarlos en memoria.
 import shutil
 
-# Cliente HTTP de la stdlib. Evitamos `requests` para no añadir dependencias
-# y porque urllib es suficiente para una descarga simple.
+# Cliente HTTP de la stdlib. Evita añadir la dependencia `requests`
+# porque urllib es suficiente para una descarga simple.
 import urllib.request
 
 # `Iterable` desde `collections.abc` (PEP 585): tipado moderno.
@@ -47,19 +47,18 @@ from src.graphs.base import BaseGraph
 
 @dataclass(frozen=True)
 class DatasetInfo:
-    """
-    Metadata inmutable de un dataset SNAP.
+    """Metadata inmutable de un dataset SNAP.
 
     `frozen=True` -> los campos no se pueden reasignar después de crear el
     objeto. Esto es deseable para una entrada de catálogo: actúa como
     constante. También lo hace hashable, útil si en el futuro queremos
     meterlos en un `set`.
 
-    Campos:
-      - `name`        : clave del catálogo y prefijo del fichero local.
-      - `url`         : URL absoluta del .txt.gz en snap.stanford.edu.
-      - `directed`    : True si el grafo original es dirigido.
-      - `description` : texto humano corto, para `describe()`.
+    Attributes:
+        name: Clave del catálogo y prefijo del fichero local.
+        url: URL absoluta del .txt.gz en snap.stanford.edu.
+        directed: True si el grafo original es dirigido.
+        description: Texto humano corto, para `describe()`.
     """
 
     name: str
@@ -157,8 +156,7 @@ SNAP_CATALOG: dict[str, DatasetInfo] = {
 
 
 class SNAPDownloader:
-    """
-    Gestor de descarga y carga de datasets SNAP.
+    """Gestor de descarga y carga de datasets SNAP.
 
     Tres responsabilidades:
       1. Descargar el `.txt.gz` desde snap.stanford.edu si no está cacheado.
@@ -168,25 +166,44 @@ class SNAPDownloader:
     El cacheado es la clave: descargar `web-Google` (5M aristas) tarda
     bastante. Mantener todo en `cache_dir` permite reusar entre runs.
 
-    Atributos:
-      - `cache_dir` (Path): carpeta donde viven los .gz/.txt.
-      - `verbose` (bool): si True, imprime el progreso.
+    Attributes:
+        cache_dir: Carpeta donde viven los `.gz` y `.txt`.
+        verbose: Si True, imprime el progreso de descarga/descompresión.
     """
 
     def __init__(
         self, cache_dir: str | Path = "./data/snap", verbose: bool = True
     ) -> None:
+        """Crea el downloader y asegura la existencia de `cache_dir`.
 
+        Args:
+            cache_dir: Carpeta donde se guardarán los datasets.
+            verbose: Si True, emite mensajes de progreso por stdout.
+        """
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.verbose = verbose
 
     def _log(self, msg: str) -> None:
+        """Imprime `msg` por stdout si `self.verbose`.
+
+        Args:
+            msg: Mensaje a emitir.
+        """
         # Centralizar el `print` evita esparcir `if verbose:` por todo el código.
         if self.verbose:
             print(msg)
 
     def _paths(self, name: str) -> tuple[Path, Path]:
+        """Devuelve las rutas locales asociadas a un dataset.
+
+        Args:
+            name: Clave del dataset en `SNAP_CATALOG`.
+
+        Returns:
+            Tupla `(gz_path, txt_path)` con las rutas del fichero comprimido
+            y del fichero descomprimido respectivamente.
+        """
         # Helper que devuelve las dos rutas asociadas a un dataset:
         # el .gz original (descarga) y el .txt descomprimido (lectura rápida).
         gz_path = self.cache_dir / f"raw/{name}.txt.gz"
@@ -195,11 +212,28 @@ class SNAPDownloader:
 
     @staticmethod
     def list_available() -> list[str]:
+        """Lista los nombres de datasets disponibles en el catálogo.
+
+        Returns:
+            Lista ordenada alfabéticamente con las claves de `SNAP_CATALOG`.
+        """
         # Devuelve los nombres del catálogo ordenados
         return sorted(SNAP_CATALOG.keys())
 
     @staticmethod
     def describe(name: str) -> str:
+        """Devuelve una descripción humana del dataset.
+
+        Args:
+            name: Clave del dataset en `SNAP_CATALOG`.
+
+        Returns:
+            String multilínea con tipo (dirigido/no dirigido), descripción
+            y URL del dataset.
+
+        Raises:
+            KeyError: Si `name` no está en `SNAP_CATALOG`.
+        """
         # Devuelve descripción del dataset.
         if name not in SNAP_CATALOG:
             raise KeyError(f"Dataset '{name}' no está en el catálogo.")
@@ -213,18 +247,21 @@ class SNAPDownloader:
         force: bool = False,
         decompress: bool = True,
     ) -> dict[str, Path]:
-        """
-        Descarga (y opcionalmente descomprime) uno o varios datasets.
+        """Descarga (y opcionalmente descomprime) uno o varios datasets.
 
-        Parámetros:
-          - `names`      : un string o un iterable de strings con nombres
-                           del catálogo.
-          - `force`      : si True, re-descarga aunque el fichero exista.
-                           Útil si el dataset ha cambiado en el origen.
-          - `decompress` : si True, descomprime el .gz a .txt y devuelve la
-                           ruta del .txt; si False, devuelve la del .gz.
+        Args:
+            names: Un string o un iterable de strings con nombres del catálogo.
+            force: Si True, re-descarga aunque el fichero exista. Útil si el
+                dataset ha cambiado en el origen.
+            decompress: Si True, descomprime el `.gz` a `.txt` y devuelve la
+                ruta del `.txt`; si False, devuelve la del `.gz`.
 
-        Devuelve un dict {nombre: ruta_final}.
+        Returns:
+            Diccionario `{nombre: ruta_final}` con la ruta producida para
+            cada dataset solicitado.
+
+        Raises:
+            KeyError: Si algún `name` no está en `SNAP_CATALOG`.
         """
         # Normalización: si name es un string, se mete en una lista
         if isinstance(names, str):
@@ -243,7 +280,7 @@ class SNAPDownloader:
             else:
                 self._log(f"[down ] {name}: descargando desde {info.url} ...")
                 self._download_file(info.url, gz_path)
-                # Reportamos tamaño en MB para feedback al usuario.
+                # Reporta tamaño en MB para feedback al usuario.
                 self._log(
                     f"        -> guardado en {gz_path} "
                     f"({gz_path.stat().st_size / 1e6:.2f} MB)"
@@ -263,11 +300,19 @@ class SNAPDownloader:
         return result
 
     def load_as_networkx(self, name: str) -> nx.Graph:
-        """
-        Carga el dataset como grafo de NetworkX.
+        """Carga el dataset como grafo de NetworkX.
 
         Asegura previamente que está descargado y descomprimido (idempotente).
         Decide `nx.Graph` vs `nx.DiGraph` según el flag del catálogo.
+
+        Args:
+            name: Clave del dataset en `SNAP_CATALOG`.
+
+        Returns:
+            `nx.Graph` o `nx.DiGraph` con los nodos como `int`.
+
+        Raises:
+            KeyError: Si `name` no está en `SNAP_CATALOG`.
         """
         if name not in SNAP_CATALOG:
             raise KeyError(f"Dataset '{name}' no está en el catálogo.")
@@ -288,20 +333,26 @@ class SNAPDownloader:
         )
 
     def summary(self, name: str) -> dict[str, Any]:
-        """
-        Devuelve un resumen rápido del dataset SIN cargarlo en memoria.
+        """Devuelve un resumen rápido del dataset sin cargarlo en memoria.
 
         Útil para datasets enormes (millones de aristas) en los que cargar
-        el grafo entero solo para contar nodos sería un desperdicio.
-        Itera línea a línea y mantiene un `set` de nodos vistos.
+        el grafo entero solo para contar nodos sería un desperdicio. Itera
+        línea a línea y mantiene un `set` de nodos vistos.
+
+        Args:
+            name: Clave del dataset en `SNAP_CATALOG`.
+
+        Returns:
+            Diccionario con claves `name`, `directed`, `nodes`, `edges` y
+            `file` (ruta al `.txt` ya cacheado).
         """
         paths = self.download(name, decompress=True)
         txt_path = paths[name]
         edges = 0
         nodes: set[int] = set()
-        with open(txt_path) as f:
+        with open(txt_path, encoding="utf-8") as f:
             for line in f:
-                # Saltamos comentarios y líneas vacías típicos de SNAP.
+                # Salta comentarios y líneas vacías típicos de SNAP.
                 if line.startswith("#") or not line.strip():
                     continue
                 # `split()[:2]` por si la línea trae más de 2 columnas (peso, etc.).
@@ -320,8 +371,14 @@ class SNAPDownloader:
 
     @staticmethod
     def _download_file(url: str, dest: Path) -> None:
+        """Descarga `url` a `dest` haciendo streaming a disco.
+
+        Args:
+            url: URL absoluta del recurso a descargar.
+            dest: Ruta local de destino.
+        """
         # Helper estático y privado (`_`). Hace una sola cosa: bajar bytes.
-        # Falseamos User-Agent porque SNAP rechaza el de urllib por defecto
+        # User-Agent falso porque SNAP rechaza el de urllib por defecto
         # (lo confunde con un bot abusivo). Mozilla/5.0 es el "user-agent canónico".
         req = urllib.request.Request(
             url, headers={"User-Agent": "Mozilla/5.0 (SNAPDownloader)"}
@@ -334,6 +391,12 @@ class SNAPDownloader:
 
     @staticmethod
     def _gunzip(src: Path, dest: Path) -> None:
+        """Descomprime un fichero gzip mediante streaming.
+
+        Args:
+            src: Ruta al fichero `.gz` de origen.
+            dest: Ruta del fichero descomprimido de destino.
+        """
         # Mismo patrón: streaming, sin cargar todo en memoria.
         # `gzip.open(..., "rb")` te da un file-like binario que descomprime al vuelo.
         with gzip.open(src, "rb") as f_in, open(dest, "wb") as f_out:
@@ -341,20 +404,19 @@ class SNAPDownloader:
 
 
 class SNAPGraph(BaseGraph):
-    """
-    Adaptador de un dataset SNAP a la interfaz `BaseGraph`.
+    """Adaptador de un dataset SNAP a la interfaz `BaseGraph`.
 
     Composición sobre herencia: `SNAPGraph` NO hereda de `SNAPDownloader`,
     sino que tiene uno como atributo (`self.downloader`). Así separamos:
       - `SNAPDownloader` = lógica de I/O (descarga, caché, parsing).
       - `SNAPGraph`      = adaptador a la interfaz del proyecto.
 
-    Atributos:
-      - `dataset_name` (str): clave del catálogo (p.ej. "ca-GrQc").
-      - `cache_dir`    : carpeta de caché. Por defecto vive bajo `src/data/snap`.
-      - `seed`         : heredado de `BaseGraph`. SNAP no usa seeds (los
-                         grafos son fijos), pero respetamos la firma común.
-      - `downloader`   : instancia de `SNAPDownloader` que hace el trabajo real.
+    Attributes:
+        dataset_name: Clave del catálogo (p.ej. "ca-GrQc").
+        cache_dir: Carpeta de caché. Por defecto vive bajo `src/data/snap`.
+        downloader: Instancia de `SNAPDownloader` que hace el trabajo real.
+        seed: Heredado de `BaseGraph`. SNAP no usa seeds (los grafos son
+            fijos), pero respetamos la firma común.
     """
 
     def __init__(
@@ -363,15 +425,26 @@ class SNAPGraph(BaseGraph):
         cache_dir: str | Path = "./data/snap",
         seed: int | None = None,
     ) -> None:
-        
+        """Inicializa el adaptador SNAP.
+
+        Args:
+            dataset_name: Clave del dataset en `SNAP_CATALOG`.
+            cache_dir: Carpeta donde se cacheará el dataset.
+            seed: Semilla (no usada, presente por consistencia de firma).
+        """
         super().__init__(seed=seed)
         self.dataset_name = dataset_name
         self.cache_dir = cache_dir
-        # Composición: delegamos toda la lógica de descarga al downloader.
+        # Composición: delega toda la lógica de descarga al downloader.
         self.downloader = SNAPDownloader(cache_dir=cache_dir, verbose=True)
 
     def build(self) -> nx.Graph:
-        # Cumplimos con el contrato de `BaseGraph`: devolver un `nx.Graph`.
+        """Construye el grafo cargando el dataset SNAP.
+
+        Returns:
+            Grafo `nx.Graph` o `nx.DiGraph` correspondiente al dataset.
+        """
+        # Cumple el contrato de `BaseGraph`: devolver un `nx.Graph`.
         # Internamente delega en el downloader. La caché lazy de `BaseGraph`
         # garantiza que solo se descargue/parsee una vez aunque se acceda
         # a `.graph` muchas veces.
