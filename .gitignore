@@ -1,0 +1,108 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Python
+# ══════════════════════════════════════════════════════════════════════════════
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Distribución / empaquetado
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Caché de herramientas
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.cache/
+.complexipy_cache/
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Jupyter
+# ══════════════════════════════════════════════════════════════════════════════
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LaTeX — artefactos de compilación
+# ══════════════════════════════════════════════════════════════════════════════
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.run.xml
+*.snm
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.vrb
+
+# Directorio de salida de compilación (PDFs generados por LaTeX)
+# Para añadir un PDF compilado manualmente: git add -f ruta/out/archivo.pdf
+**/out/
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Simulación — salidas generadas
+# ══════════════════════════════════════════════════════════════════════════════
+#*.gif
+*.mp4
+*.avi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Datasets SNAP — ignorar todo excepto ego-Facebook como ejemplo
+# ══════════════════════════════════════════════════════════════════════════════
+data/raw/*.txt.gz
+!data/raw/ego-FaceBook.txt.gz
+
+data/processed/*.txt
+!data/processed/ego-FaceBook.txt
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sistema operativo
+# ══════════════════════════════════════════════════════════════════════════════
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ══════════════════════════════════════════════════════════════════════════════
+# IDEs y editores
+# ══════════════════════════════════════════════════════════════════════════════
+# VS Code (ignorar configuración local de usuario, conservar settings del proyecto)
+.vscode/*.log
+
+# JetBrains
+.idea/
+
+# Vim / Emacs
+*.swp
+*.swo
+*.swn
+\#*\#
+.\#*
