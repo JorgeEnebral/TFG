@@ -67,11 +67,11 @@ build/
 # ══════════════════════════════════════════════════════════════════════════════
 # Datasets SNAP — ignorar todo excepto ego-Facebook como ejemplo
 # ══════════════════════════════════════════════════════════════════════════════
-data/raw/*.txt.gz
-!data/raw/ego-FaceBook.txt.gz
+data/snap/raw/*.txt.gz
+!data/snap/raw/ego-Facebook.txt.gz
 
-data/processed/*.txt
-!data/processed/ego-FaceBook.txt
+data/snap/processed/*.txt
+!data/snap/processed/ego-Facebook.txt
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Sistema operativo
