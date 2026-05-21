@@ -39,19 +39,7 @@ from pathlib import Path
 
 @dataclass
 class Interaction:
-    """Una interacción = un evento de envío individual.
-
-    Attributes:
-        trace_id: Id de la traza lógica a la que pertenece este envío.
-            Varios envíos pueden compartirlo si forman parte de una cadena
-            causal (memoria de agente).
-        message_id: Id único del envío. Monotónico desde 0; nunca se repite.
-        timestep: Paso de simulación (0, 1, 2, ...).
-        source_node: Nodo emisor del grafo.
-        target_node: Nodo receptor del grafo.
-        previous_message_ids: Ids de mensajes anteriores de la misma traza
-            que motivaron esta interacción.
-    """
+    """Una interacción = un evento de envío individual."""
 
     trace_id: int
     message_id: int
@@ -59,6 +47,14 @@ class Interaction:
     source_node: int
     target_node: int
     previous_message_ids: list[int] = field(default_factory=list)
+    # Campos semánticos (Fase 1)
+    layer: str = "analog"
+    emotion: str = "neutral"
+    emotional_load: float = 0.0
+    modalities: str = "text"   # valores separados por "|"
+    veracity: float = 0.5
+    salience: float = 0.5
+    parent_message_id: int | None = None
 
 
 @dataclass
@@ -97,6 +93,27 @@ class DataCollector:
         self._next_trace_id += 1
         return tid
 
+    def record_message(self, msg: object) -> Interaction:
+        """Registra un Message rico (Fase 1+). Delega en record()."""
+        from src.messages import Message, Modality  # import local para evitar circular
+
+        assert isinstance(msg, Message)
+        modalities_str = "|".join(sorted(m.value for m in msg.modalities)) or "text"
+        return self.record(
+            timestep=msg.timestep,
+            source=msg.source,
+            target=msg.target,
+            trace_id=msg.trace_id,
+            previous_message_ids=[msg.parent_message_id] if msg.parent_message_id is not None else [],
+            layer=msg.layer.value,
+            emotion=msg.emotion.value,
+            emotional_load=msg.emotional_load,
+            modalities=modalities_str,
+            veracity=msg.veracity,
+            salience=msg.salience,
+            parent_message_id=msg.parent_message_id,
+        )
+
     def record(
         self,
         timestep: int,
@@ -104,6 +121,13 @@ class DataCollector:
         target: int,
         trace_id: int | None = None,
         previous_message_ids: list[int] | None = None,
+        layer: str = "analog",
+        emotion: str = "neutral",
+        emotional_load: float = 0.0,
+        modalities: str = "text",
+        veracity: float = 0.5,
+        salience: float = 0.5,
+        parent_message_id: int | None = None,
     ) -> Interaction:
         """Registra un evento de envío y devuelve el Interaction creado.
 
@@ -138,6 +162,13 @@ class DataCollector:
             timestep=timestep,
             source_node=source,
             target_node=target,
+            layer=layer,
+            emotion=emotion,
+            emotional_load=emotional_load,
+            modalities=modalities,
+            veracity=veracity,
+            salience=salience,
+            parent_message_id=parent_message_id,
         )
         self.interactions.append(interaction)
         self._next_message_id += 1
@@ -151,51 +182,6 @@ class DataCollector:
             Cantidad total de eventos registrados en `self.interactions`.
         """
         return len(self.interactions)
-
-    def filter_by_timestep(self, t: int) -> list[Interaction]:
-        """Devuelve todos las interacciones de un paso de simulación dado.
-
-        Args:
-            t: Paso de simulación a filtrar.
-
-        Returns:
-            Lista de `Interaction` cuyo `timestep == t`.
-        """
-        return [tr for tr in self.interactions if tr.timestep == t]
-
-    def filter_by_trace(self, trace_id: int) -> dict[str, object]:
-        """Devuelve los envíos de una traza lógica ordenados por timestep.
-
-        Útil cuando los agentes tengan memoria: permite ver toda la
-        secuencia de decisiones encadenadas a partir de un mismo origen.
-
-        Args:
-            trace_id: Id de la traza lógica a recuperar.
-
-        Returns:
-            Diccionario de la traza agrupado por timesteps, y cada interacción
-            con su message_id, sus previous_message_ids, source_node, target_node
-        """
-        interactions = sorted(
-            (tr for tr in self.interactions if tr.trace_id == trace_id),
-            key=lambda tr: (tr.timestep, tr.source_node),
-        )
-
-        by_timestep: dict[str, list[dict[str, object]]] = {}
-        for tr in interactions:
-            bucket = str(tr.timestep)
-            if bucket not in by_timestep:
-                by_timestep[bucket] = []
-            by_timestep[bucket].append(
-                {
-                    "message_id": tr.message_id,
-                    "previous_message_ids": tr.previous_message_ids,
-                    "source_node": tr.source_node,
-                    "target_node": tr.target_node,
-                }
-            )
-
-        return {"trace_id": trace_id, "by_timestep": by_timestep}
 
     def to_csv(self, path: str | Path) -> Path:
         """Exporta todos las interacciones a un fichero CSV.
@@ -220,6 +206,13 @@ class DataCollector:
                     "source_node",
                     "target_node",
                     "previous_message_ids",
+                    "layer",
+                    "emotion",
+                    "emotional_load",
+                    "modalities",
+                    "veracity",
+                    "salience",
+                    "parent_message_id",
                 ],
             )
             writer.writeheader()
@@ -247,22 +240,3 @@ class DataCollector:
             json.dump([asdict(tr) for tr in self.interactions], f, indent=2)
         return path
 
-    def summary(self) -> dict[str, int]:
-        """Resumen rápido de las interacciones acumuladas.
-
-        Returns:
-            Diccionario con tres claves:
-              - `total_messages`: total de envíos registrados.
-              - `total_traces`: número de trazas lógicas distintas.
-              - `timesteps`: número de pasos cubiertos (max timestep + 1).
-            Si no hay interacciones, todos los valores son 0.
-        """
-        if not self.interactions:
-            return {"total_messages": 0, "total_traces": 0, "timesteps": 0}
-        return {
-            "total_messages": len(self.interactions),
-            # `set()` deduplica los trace_id para contar trazas únicas.
-            "total_traces": len({tr.trace_id for tr in self.interactions}),
-            # +1 porque los timesteps son 0-indexed.
-            "timesteps": max(tr.timestep for tr in self.interactions) + 1,
-        }

@@ -37,10 +37,9 @@ from dataclasses import dataclass
 # `pathlib.Path` -> manejo de rutas multiplataforma. Mejor que strings.
 from pathlib import Path
 
-# `Any` para el dict heterogéneo que devuelve `summary()`.
-from typing import Any
 
 import networkx as nx
+import random
 
 from src.graphs.base import BaseGraph
 
@@ -328,43 +327,6 @@ class SNAPDownloader:
             txt_path, comments="#", create_using=create_using(), nodetype=int
         )
 
-    def summary(self, name: str) -> dict[str, Any]:
-        """Devuelve un resumen rápido del dataset sin cargarlo en memoria.
-
-        Útil para datasets enormes (millones de aristas) en los que cargar
-        el grafo entero solo para contar nodos sería un desperdicio. Itera
-        línea a línea y mantiene un `set` de nodos vistos.
-
-        Args:
-            name: Clave del dataset en `SNAP_CATALOG`.
-
-        Returns:
-            Diccionario con claves `name`, `directed`, `nodes`, `edges` y
-            `file` (ruta al `.txt` ya cacheado).
-        """
-        paths = self.download(name, decompress=True)
-        txt_path = paths[name]
-        edges = 0
-        nodes: set[int] = set()
-        with open(txt_path, encoding="utf-8") as f:
-            for line in f:
-                # Salta comentarios y líneas vacías típicos de SNAP.
-                if line.startswith("#") or not line.strip():
-                    continue
-                # `split()[:2]` por si la línea trae más de 2 columnas (peso, etc.).
-                u, v = line.split()[:2]
-                nodes.add(int(u))
-                nodes.add(int(v))
-                edges += 1
-        info = SNAP_CATALOG[name]
-        return {
-            "name": name,
-            "directed": info.directed,
-            "nodes": len(nodes),
-            "edges": edges,
-            "file": str(txt_path),
-        }
-
     @staticmethod
     def _download_file(url: str, dest: Path) -> None:
         """Descarga `url` a `dest` haciendo streaming a disco.
@@ -444,7 +406,27 @@ class SNAPGraph(BaseGraph):
         # Internamente delega en el downloader. La caché lazy de `BaseGraph`
         # garantiza que solo se descargue/parsee una vez aunque se acceda
         # a `.graph` muchas veces.
-        return self.downloader.load_as_networkx(self.dataset_name)
+        rng = random.Random(self.seed)
+        graph: nx.Graph = self.downloader.load_as_networkx(self.dataset_name)
+        return self.ba_to_directed_prob(graph, rng)
+    
+    def ba_to_directed_prob(graph: nx.Graph, rng: random.Random) -> nx.DiGraph:
+        """
+        Convierte un grafo no dirigido a dirigido por probabilidad basado en
+        los grados de los 2 nodos
+        """
+        dg = nx.DiGraph()
+        dg.add_nodes_from(graph.nodes())
+        for u, v in graph.edges():
+            deg_u = graph.degree(u)
+            deg_v = graph.degree(v)
+            total = deg_u + deg_v
+            # prob de que v sea el destino proporcional a su grado
+            if rng.random() < deg_v / total:
+                dg.add_edge(u, v)
+            else:
+                dg.add_edge(v, u)
+        return dg
 
 
 if __name__ == "__main__":

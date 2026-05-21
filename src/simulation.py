@@ -1,56 +1,34 @@
 """
 Punto de entrada de la simulación.
 
-Orquesta todas las piezas:
-  - Construcción del grafo (clases en `src.graphs`).
-  - Modelo Mesa con factoría de agentes (`src.model.NetworkModel`).
-  - DataCollector (`src.datacollector`).
-  - Visualizadores (animación, distribuciones, heatmap).
-
-Aquí vive también la **CLI**: argparse + `build_graph()` + `main()`.
-La clase `Simulation` es reutilizable desde notebooks o tests sin
-necesidad de pasar por la CLI.
+Uso:
+    python -m src.simulation          # lee configs/config.py
 """
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
+import configs.config as cfg
 from src.agents import StochasticAgent
 from src.datacollector import DataCollector
 from src.graphs import (
-    BarabasiAlbertGraph,
     BaseGraph,
     ErdosRenyiGraph,
     HyperGraph,
+    MultiLayerGraph,
+    ScaleFreeGraph,
     SNAPGraph,
     WattsStrogatzGraph,
 )
 from src.model import NetworkModel
 from src.visualizer import DegreeDistributionPlot, MessageHeatmap, NetworkAnimator
 
-# Ruta absoluta a `/data`, calculada a partir de la ubicación de este fichero.
 DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 class Simulation:
-    """Configura y ejecuta una simulación completa.
-
-    Es la fachada de alto nivel. Quien la use NO necesita saber cómo
-    interactúan modelo, agentes y collector: solo construye una
-    `Simulation` con los parámetros y llama a uno de sus métodos.
-
-    Attributes:
-        graph: Instancia de `BaseGraph` (cualquier topología).
-        fire_probability: Probabilidad por agente y paso de disparar mensaje.
-        sim_time: Número total de pasos a simular.
-        interval_ms: Milisegundos entre frames de la animación.
-        seed: Semilla compartida para reproducibilidad.
-        out_dir: Carpeta donde escribir outputs (CSV/JSON/PNG/GIF).
-        collector: DataCollector creado y mantenido por la simulación.
-        model: NetworkModel ya inicializado con agentes.
-    """
+    """Configura y ejecuta una simulación completa."""
 
     def __init__(
         self,
@@ -61,37 +39,25 @@ class Simulation:
         seed: int = 42,
         out_dir: str | Path = DATA_DIR,
     ) -> None:
-        """Construye la simulación y prepara modelo y collector.
+        """Inicializa la simulación creando el modelo y el recolector.
 
         Args:
-            graph: Topología sobre la que viven los agentes.
+            graph: Topología de red ya construida (o lazy).
             fire_probability: Probabilidad de disparo por agente y paso.
             sim_time: Número total de pasos a simular.
-            interval_ms: Milisegundos entre frames de la animación.
-            seed: Semilla compartida para todos los componentes.
-            out_dir: Carpeta donde se escribirán los outputs.
+            interval_ms: Milisegundos entre frames en la animación.
+            seed: Semilla del RNG compartido.
+            out_dir: Directorio de salida para datos y figuras.
         """
         self.graph = graph
         self.fire_probability = fire_probability
         self.sim_time = sim_time
         self.interval_ms = interval_ms
         self.seed = seed
-        # Asegura que el directorio de salida exista (idempotente).
         self.out_dir = Path(out_dir)
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
-        # DataCollector creado ANTES del modelo y luego inyectado.
-        # Mantiene referencia externa (`sim.collector`)
-        # mientras el modelo lo rellena (es la misma instancia).
         self.collector = DataCollector()
-
-        # El modelo recibe:
-        #   - el `nx.Graph` (no el envoltorio BaseGraph). `graph.graph`
-        #     dispara la construcción lazy si era la primera vez.
-        #   - una factoría de agentes via `lambda`. Todos los agentes
-        #     son StochasticAgent con la misma probabilidad.
-        #     Para poblaciones heterogéneas basta con un lambda más
-        #     elaborado (p.ej. mezclar tipos según `node_id`).
         self.model = NetworkModel(
             graph=self.graph.graph,
             agent_factory=lambda model, node_id: StochasticAgent(
@@ -108,18 +74,14 @@ class Simulation:
         gif_path: str | Path | None = None,
         show: bool = False,
     ) -> NetworkAnimator:
-        """Ejecuta la simulación renderizándola como animación.
-
-        El `NetworkAnimator._draw_frame` es quien llama a `model.step()`
-        en cada frame, así que el avance de la simulación está acoplado
-        al pintado. Si quieres rapidez sin gráficos, usa `run_headless`.
+        """Ejecuta la simulación con animación matplotlib.
 
         Args:
-            gif_path: Si no es None, ruta donde guardar el GIF resultante.
-            show: Si True, abre la ventana matplotlib (requiere display).
+            gif_path: Si se proporciona, guarda la animación como GIF.
+            show: Si True, abre una ventana matplotlib en tiempo real.
 
         Returns:
-            El `NetworkAnimator` usado para la simulación.
+            El ``NetworkAnimator`` usado, por si el caller quiere reutilizarlo.
         """
         animator = NetworkAnimator(
             model=self.model,
@@ -128,37 +90,28 @@ class Simulation:
             layout_seed=self.seed,
             title_suffix=f"p_fire = {self.fire_probability}",
         )
-        # Guardar GIF y/o mostrar ventana son operaciones independientes.
-        # `gif_path is not None` -> escribe a disco.
         if gif_path is not None:
             saved = animator.save_gif(gif_path)
             print(f"[OK] GIF guardado en: {saved}")
-        # `show=True` -> ventana matplotlib interactiva (requiere display).
         if show:
             animator.show()
         else:
-            # Cierra la figura para liberar memoria.
             animator.close()
         return animator
 
     def run_headless(self) -> None:
-        """Ejecuta la simulación sin graficar. Mucho más rápido.
-
-        Útil para barridos de parámetros, generación masiva de trazas
-        o cuando el resultado interesa solo en CSV/JSON.
-        """
+        """Ejecuta la simulación sin visualización."""
         for _ in range(self.sim_time):
             self.model.step()
 
     def export_data(self, basename: str = "simulation") -> dict[str, Path]:
-        """Exporta las trazas a CSV y JSON en `out_dir`.
+        """Exporta las trazas recogidas a CSV y JSON.
 
         Args:
-            basename: Nombre base de los ficheros (sin extensión).
+            basename: Prefijo del nombre de archivo sin extensión.
 
         Returns:
-            Diccionario con dos claves, `csv` y `json`, apuntando a las
-            rutas escritas.
+            Diccionario ``{"csv": Path, "json": Path}`` con las rutas escritas.
         """
         csv_path = self.collector.to_csv(self.out_dir / f"{basename}.csv")
         json_path = self.collector.to_json(self.out_dir / f"{basename}.json")
@@ -167,156 +120,105 @@ class Simulation:
         return {"csv": csv_path, "json": json_path}
 
     def render_static_plots(self, basename: str = "simulation") -> dict[str, Path]:
-        """Genera plots estáticos resumiendo el grafo y la dinámica.
+        """Genera los plots estáticos de distribución de grado y heatmap.
 
         Args:
-            basename: Nombre base de los ficheros (sin extensión).
+            basename: Prefijo del nombre de archivo sin extensión.
 
         Returns:
-            Diccionario con dos claves, `degree` (distribución de grado)
-            y `heatmap` (mensajes por par origen/destino), apuntando a
-            las rutas PNG escritas.
+            Diccionario ``{"degree": Path, "heatmap": Path}`` con las rutas.
         """
         deg_path = self.out_dir / f"{basename}_degree.png"
         heat_path = self.out_dir / f"{basename}_heatmap.png"
-        # `DegreeDistributionPlot` solo depende del grafo (estructura).
         DegreeDistributionPlot(self.graph.graph).render(deg_path)
-        # `MessageHeatmap` depende de la dinámica (collector) + tamaño del grafo.
         MessageHeatmap(self.collector, num_nodes=len(self.graph)).render(heat_path)
         print(f"[OK] Distribución grado -> {deg_path}")
         print(f"[OK] Heatmap mensajes   -> {heat_path}")
         return {"degree": deg_path, "heatmap": heat_path}
 
 
-# ============================================================
-# Selector de grafos por nombre (CLI)
-# ============================================================
-def build_graph(args: argparse.Namespace) -> BaseGraph:
-    """Mapea `args.graph` (string) a una instancia concreta de `BaseGraph`.
-
-    Es un dispatcher simple: una rama por topología soportada en la CLI.
-    Conforme añadamos más tipos de grafo (LFR, SBM, etc.), aquí se mete
-    una nueva rama.
+def build_graph(g: dict[str, object], seed: int) -> BaseGraph:
+    """Construye el ``BaseGraph`` correcto a partir del dict de configuración.
 
     Args:
-        args: Namespace de argparse con los parámetros de la CLI.
+        g: Diccionario con al menos la clave ``"type"`` y los parámetros
+            específicos de esa topología.
+        seed: Semilla del generador aleatorio.
 
     Returns:
-        Instancia de `BaseGraph` lista para usarse en `Simulation`.
+        Instancia del ``BaseGraph`` correspondiente al tipo indicado.
 
     Raises:
-        ValueError: Si `args.graph` no corresponde a ninguna topología
-            soportada.
+        ValueError: Si ``g["type"]`` no corresponde a ninguna topología conocida.
     """
-    kind = args.graph
+    kind = g["type"]
     if kind == "erdos":
-        return ErdosRenyiGraph(
-            num_nodes=args.nodes, edge_prob=args.edge_prob, seed=args.seed
+        return ErdosRenyiGraph(num_nodes=g["num_nodes"], edge_prob=g["edge_prob"], seed=seed)
+    if kind == "scale_free":
+        return ScaleFreeGraph(
+            num_nodes=g["num_nodes"],
+            alpha=g["sf_alpha"],
+            beta=g["sf_beta"],
+            gamma=g["sf_gamma"],
+            delta_in=g["sf_delta_in"],
+            delta_out=g["sf_delta_out"],
+            seed=seed,
         )
-    if kind == "barabasi":
-        return BarabasiAlbertGraph(num_nodes=args.nodes, m=args.m, seed=args.seed)
     if kind == "watts":
-        return WattsStrogatzGraph(
-            num_nodes=args.nodes, k=args.k, rewire_prob=args.rewire_prob, seed=args.seed
-        )
-    if kind == "hyper":
-        return HyperGraph(
-            num_nodes=args.nodes,
-            num_hyperedges=args.hyperedges,
-            hyperedge_size_range=(args.he_min, args.he_max),
-            seed=args.seed,
-        )
+        return WattsStrogatzGraph(num_nodes=g["num_nodes"], k=g["ws_k"], rewire_prob=g["ws_rewire_prob"], seed=seed)
     if kind == "snap":
-        return SNAPGraph(dataset_name=args.snap_dataset, seed=args.seed)
-    raise ValueError(f"Tipo de grafo desconocido: {kind}")
-
-
-def parse_args() -> argparse.Namespace:
-    """Define y parsea los argumentos de la CLI.
-
-    Cada argumento mapea a un parámetro de `Simulation` o `build_graph`.
-
-    Returns:
-        Namespace con los argumentos ya parseados.
-    """
-    p = argparse.ArgumentParser(description="Simulación de red de agentes (TFG).")
-
-    # --- Selección de topología ---
-    # `choices` filtra valores inválidos antes de llegar a `build_graph`.
-    p.add_argument(
-        "--graph",
-        choices=["erdos", "barabasi", "watts", "hyper", "snap"],
-        default="erdos",
-    )
-    p.add_argument("--nodes", type=int, default=12)
-    p.add_argument("--edge-prob", type=float, default=0.25)
-    p.add_argument("--m", type=int, default=2, help="Barabási-Albert: aristas/nodo")
-    p.add_argument("--k", type=int, default=4, help="Watts-Strogatz: vecinos")
-    p.add_argument(
-        "--rewire-prob", type=float, default=0.1, help="Watts-Strogatz: prob. recableo"
-    )
-    p.add_argument("--hyperedges", type=int, default=10)
-    p.add_argument("--he-min", type=int, default=2)
-    p.add_argument("--he-max", type=int, default=4)
-    p.add_argument("--snap-dataset", type=str, default="ca-GrQc")
-
-    # --- Parámetros de simulación ---
-    p.add_argument("--fire-prob", type=float, default=0.20)
-    p.add_argument("--time", type=int, default=40)
-    p.add_argument("--interval", type=int, default=500)
-    p.add_argument("--seed", type=int, default=42)
-
-    # --- Flags de salida (action="store_true" -> presencia = True) ---
-    p.add_argument("--no-gif", action="store_true")
-    p.add_argument("--show", action="store_true")
-    p.add_argument("--out", type=str, default="simulation")
-    p.add_argument("--no-export", action="store_true")
-    p.add_argument("--no-plots", action="store_true")
-    return p.parse_args()
+        return SNAPGraph(dataset_name=g["snap_dataset"], seed=seed)
+    if kind == "multilayer":
+        return MultiLayerGraph(
+            num_nodes=g["num_nodes"],
+            ws_k=g["ws_k"],
+            ws_rewire_prob=g["ws_rewire_prob"],
+            sf_alpha=g["sf_alpha"],
+            sf_beta=g["sf_beta"],
+            sf_gamma=g["sf_gamma"],
+            sf_delta_in=g["sf_delta_in"],
+            sf_delta_out=g["sf_delta_out"],
+            seed=seed,
+        )
+    raise ValueError(f"Tipo de grafo desconocido: {kind!r}")
 
 
 def main() -> None:
-    """Punto de entrada de la CLI.
+    """Punto de entrada principal: lee config, construye y ejecuta la simulación."""
+    seed = cfg.SIMULATION["seed"]
+    sim_time = cfg.SIMULATION["days"] * cfg.SIMULATION["steps_per_day"]
 
-    Pipeline: parse -> build -> run -> export -> plots. Decide ejecución
-    headless o con animación en función de `--no-gif` y `--show`.
-    """
-    args = parse_args()
-    graph = build_graph(args)
+    graph = build_graph(cfg.GRAPH, seed=seed)
 
-    folder_name = (
-        f"snap-{args.snap_dataset}" if args.graph == "snap" else f"{args.graph}-{args.nodes}"
+    folder = (
+        f"snap-{cfg.GRAPH['snap_dataset']}"
+        if cfg.GRAPH["type"] == "snap"
+        else f"{cfg.GRAPH['type']}-{cfg.GRAPH['num_nodes']}"
     )
-    out_dir = DATA_DIR / "results" / folder_name
+    out_dir = DATA_DIR / "results" / folder
 
     sim = Simulation(
         graph=graph,
-        fire_probability=args.fire_prob,
-        sim_time=args.time,
-        interval_ms=args.interval,
-        seed=args.seed,
+        fire_probability=cfg.SIMULATION["fire_probability"],
+        sim_time=sim_time,
+        interval_ms=cfg.SIMULATION["interval_ms"],
+        seed=seed,
         out_dir=out_dir,
     )
 
-    # Decisión de cómo correr:
-    #   - sin GIF y sin ventana -> headless (rápido, sin matplotlib).
-    #   - en otro caso -> con animación (más lento, pero genera GIF/ventana).
-    # Sin GIF ni ventana, se ahorra pintar todo.
-    if args.no_gif and not args.show:
+    headless = not cfg.OUTPUT["render_gif"] and not cfg.OUTPUT["show"]
+    if headless:
         sim.run_headless()
     else:
-        gif_path = None if args.no_gif else out_dir / f"{args.out}.gif"
-        sim.run_with_animation(gif_path=gif_path, show=args.show)
+        gif_path = out_dir / f"{cfg.OUTPUT['basename']}.gif" if cfg.OUTPUT["render_gif"] else None
+        sim.run_with_animation(gif_path=gif_path, show=cfg.OUTPUT["show"])
 
-    # Exportar trazas y plots son opcionales (flags --no-export / --no-plots).
-    if not args.no_export:
-        sim.export_data(basename=args.out)
-    if not args.no_plots:
-        sim.render_static_plots(basename=args.out)
+    if cfg.OUTPUT["export_csv"] or cfg.OUTPUT["export_json"]:
+        sim.export_data(basename=cfg.OUTPUT["basename"])
+    if cfg.OUTPUT["render_plots"]:
+        sim.render_static_plots(basename=cfg.OUTPUT["basename"])
     print(f"[OK] Total mensajes disparados: {len(sim.collector)}")
 
 
-# Bloque guard: solo se ejecuta si el fichero se lanza directamente
-# (no si se importa como módulo). `python -m src.simulation` lo dispara.
 if __name__ == "__main__":
     main()

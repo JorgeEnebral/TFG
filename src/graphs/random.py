@@ -73,42 +73,70 @@ class ErdosRenyiGraph(BaseGraph):
         return g
 
 
-class BarabasiAlbertGraph(BaseGraph):
-    """Grafo Barabási-Albert (preferential attachment).
+class ScaleFreeGraph(BaseGraph):
+    """Grafo de libre de escala dirigido (Dorogovtsev-Mendes-Samukhin).
+
+    Usa ``nx.scale_free_graph``, que crece añadiendo nodos y aristas en
+    tres pasos mutuamente excluyentes controlados por ``alpha``, ``beta``
+    y ``gamma`` (deben sumar 1.0). Produce un ``MultiDiGraph`` dirigido.
 
     Attributes:
-        num_nodes: Número total de nodos finales.
-        m: Cuántas aristas añade cada nodo nuevo al entrar. El grado
-            mínimo final es `m`; los hubs aparecen por acumulación.
+        num_nodes: Número de nodos finales.
+        alpha: Prob. de añadir un nodo nuevo conectado a uno existente
+            elegido por distribución de in-grado.
+        beta: Prob. de añadir una arista entre dos nodos existentes.
+        gamma: Prob. de añadir un nodo nuevo conectado a uno existente
+            elegido por distribución de out-grado.
+        delta_in: Sesgo para la selección por in-grado.
+        delta_out: Sesgo para la selección por out-grado.
         seed: Semilla del generador.
     """
 
     def __init__(
         self,
         num_nodes: int,
-        m: int,
+        alpha: float = 0.41,
+        beta: float = 0.54,
+        gamma: float = 0.05,
+        delta_in: float = 0.2,
+        delta_out: float = 0.0,
         seed: int | None = None,
     ) -> None:
-        """Inicializa la configuración del grafo Barabási-Albert.
+        """Inicializa la configuración del grafo de libre de escala.
 
         Args:
-            num_nodes: Número total de nodos finales.
-            m: Aristas que añade cada nodo nuevo al entrar.
+            num_nodes: Número de nodos finales.
+            alpha: Probabilidad de crecimiento por in-grado.
+            beta: Probabilidad de enlace entre nodos existentes.
+            gamma: Probabilidad de crecimiento por out-grado.
+            delta_in: Sesgo de selección por in-grado.
+            delta_out: Sesgo de selección por out-grado.
             seed: Semilla del generador.
         """
         super().__init__(seed=seed)
         self.num_nodes = num_nodes
-        self.m = m
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.delta_in = delta_in
+        self.delta_out = delta_out
 
-    def build(self) -> nx.Graph:
-        """Construye el grafo Barabási-Albert.
+    def build(self) -> nx.MultiDiGraph:
+        """Construye el grafo de libre de escala dirigido.
 
         Returns:
-            Grafo `nx.Graph` siempre conexo por construcción.
+            ``nx.MultiDiGraph`` dirigido con distribución de grado
+            power-law en in-grado y out-grado.
         """
-        # `barabasi_albert_graph` es siempre conexo por construcción
-        # cada nodo nuevo se conecta a `m` existentes
-        return nx.barabasi_albert_graph(n=self.num_nodes, m=self.m, seed=self.seed)
+        return nx.scale_free_graph(
+            n=self.num_nodes,
+            alpha=self.alpha,
+            beta=self.beta,
+            gamma=self.gamma,
+            delta_in=self.delta_in,
+            delta_out=self.delta_out,
+            seed=self.seed,
+        )
 
 
 class WattsStrogatzGraph(BaseGraph):

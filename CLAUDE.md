@@ -3,16 +3,20 @@
 
 TFG: simulador de red social multiagente basado en `mesa 3.x` y `networkx`. Modela la propagación de mensajes entre ciudadanos (agentes) sobre un grafo, con recogida de trazas para análisis offline.
 
-## Código en `src/`
+---
 
-- `agents/` — `BaseAgent` (abstracto, `mesa.Agent`) y `StochasticAgent` (dispara mensaje a un vecino aleatorio con `fire_probability`).
-- `graphs/` — `BaseGraph` con construcción lazy; topologías `ErdosRenyiGraph`, `BarabasiAlbertGraph`, `WattsStrogatzGraph`, `HyperGraph` (clique projection) y `SNAPGraph` (datasets reales con caché).
-- `model.py` — `NetworkModel(mesa.Model)` une grafo y agentes, mantiene `active_messages` por step y ordena agentes con `agents.shuffle_do("step")`.
-- `datacollector.py` — dataclass `Interaction(trace_id, message_id, timestep, source, target, previous_message_ids)` con export CSV/JSON y filtros por traza/timestep.
-- `simulation.py` — orquestador y CLI (`--graph`, `--nodes`, `--fire-prob`, `--time`, ...) con modos headless y animado.
-- `visualizer.py` — `NetworkAmator` (GIF/live con matplotlib), `DegreeDistributionPlot` y `MessageHeatmap`; estilo oscuro centralizado.
+# Coding Standards
 
-Horizonte objetivo de simulación: 2 meses · 10 timesteps/día = 600 timesteps. Plan de evolución a red bicapa (analógica + digital) con cerebro bayesiano, mensajes con carga semántica/emocional y scoring de superioridad cognitiva en `informe.md`.
+### File header
+Every script must start with a module-level docstring
+
+### Docstrings
+Use Google-style docstrings for all classes and functions:
+
+
+### Type hints
+All function signatures and variables must be fully typed for mypy strict mode.
+No `Any` unless absolutely justified with a comment.
 
 ---
 
@@ -77,27 +81,10 @@ Never mark a task complete without proving it works. Ask yourself: "Would a staf
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-## 5. Workflow & Task Management
-
-**Plan first. Track progress. Capture learnings.**
-
-- Enter plan mode for any non-trivial task (3+ steps or architectural decisions).
-- Write plan to `tasks/todo.md` with checkable items; check in before starting implementation.
-- If something goes sideways, STOP and re-plan immediately — don't keep pushing.
-- Mark items complete as you go; add a review section when done.
-- After ANY correction from the user: update `tasks/lessons.md` with the pattern and rules to prevent recurrence.
-- Review lessons at session start for the relevant project.
-
-## 6. Subagents & Parallel Work
+## 5. Subagents & Parallel Work
 
 - Use subagents liberally to keep the main context window clean.
 - Offload research, exploration, and parallel analysis to subagents.
 - For complex problems, throw more compute at it via subagents.
 - One task per subagent for focused execution.
 
-## 7. Autonomous Bug Fixing
-
-- When given a bug report: just fix it. Don't ask for hand-holding.
-- Point at logs, errors, failing tests — then resolve them.
-- Zero context switching required from the user.
-- Go fix failing CI tests without being told how.

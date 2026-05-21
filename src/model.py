@@ -22,8 +22,6 @@ agente. Eso permite tener simulaciones híbridas de agentes sin tocar esta clase
 
 from __future__ import annotations
 
-# `Callable` para tipar la factoría de agentes.
-# Forma `Callable[[args...], retorno]`.
 from collections.abc import Callable
 
 import mesa
@@ -31,6 +29,7 @@ import networkx as nx
 
 from src.agents import BaseAgent
 from src.datacollector import DataCollector
+from src.messages import Emotion, Layer, Message, Modality
 
 
 class NetworkModel(mesa.Model):  # type: ignore
@@ -54,7 +53,7 @@ class NetworkModel(mesa.Model):  # type: ignore
         self,
         graph: nx.Graph,
         agent_factory: Callable[[NetworkModel, int], BaseAgent],
-        data_collector: DataCollector | None = None,
+        collector: DataCollector,
         seed: int = 42,
     ) -> None:
         """Inicializa el modelo y crea un agente por cada nodo del grafo.
@@ -64,8 +63,6 @@ class NetworkModel(mesa.Model):  # type: ignore
                 de un `BaseGraph`). El modelo NO lo copia.
             agent_factory: Callable `(model, node_id) -> BaseAgent` que
                 construye el agente concreto que vive en cada nodo.
-            data_collector: DataCollector preexistente para reusar. Si es
-                None se crea uno nuevo.
             seed: Semilla para el RNG compartido (`self.random`).
         """
         # `super().__init__(rng=seed)` inicializa el RNG compartido
@@ -77,73 +74,104 @@ class NetworkModel(mesa.Model):  # type: ignore
         # el visualizador comparten la misma instancia.
         self.graph = graph
 
-        # Inicialización del DataCollector.
-        self.data_collector = (
-            data_collector if data_collector is not None else DataCollector()
-        )
+        self.data_collector = collector
 
-        # Buffer efímero. Se vacía al principio de cada `step()` y se llena
-        # cuando los agentes llaman a `emit_message()`. Al final del step
-        # se vuelca al DataCollector y se descarta.
-        # Tupla `(src, tgt)` -> ligero, suficiente para la animación.
-        self.active_messages: list[tuple[int, int]] = []
+        # Buffer efímero de Messages del paso actual (para el visualizador).
+        self.active_messages: list[Message] = []
 
-        # Contador de pasos. El primero es 0, así casa con `range(sim_time)`.
+        # Outbox: se llena durante TX y se vacía en la sub-fase RX.
+        self._outbox: list[Message] = []
+
+        # Inboxes por nodo: los agentes consumen su inbox al inicio de step().
+        self._inboxes: dict[int, list[Message]] = {n: [] for n in graph.nodes()}
+
+        # Contador autoincremental de message_id.
+        self._next_message_id: int = 0
         self.current_step = 0
 
-        # Mapa node_id -> agente. Mesa ya guarda los agentes en `self.agents`
-        # (un AgentSet), pero esa colección está indexada por unique_id, no
-        # por node_id. Mantener este dict aparte permite buscar al agente
-        # de un nodo en O(1) sin recorrer todos los agentes.
         self.agent_by_node: dict[int, BaseAgent] = {}
         for node_id in graph.nodes():
-            # La factoría se encarga de construir el agente concreto.
-            # Cuando el agente llama a `super().__init__(model)` en su
-            # constructor, Mesa lo registra automáticamente en `self.agents`.
             agent = agent_factory(self, node_id)
             self.agent_by_node[node_id] = agent
 
-    def emit_message(self, source: int, target: int) -> None:
-        """Registra el envío de un mensaje en el buffer del paso actual.
+    def make_message(
+        self,
+        source: int,
+        target: int,
+        layer: Layer = Layer.ANALOG,
+        emotion: Emotion | None = None,
+        emotional_load: float = 0.0,
+        veracity: float = 0.5,
+        salience: float = 0.5,
+        modalities: frozenset[Modality] | None = None,
+        parent_message_id: int | None = None,
+    ) -> Message:
+        """Crea un Message con message_id y timestep asignados automáticamente."""
+        mid = self._next_message_id
+        self._next_message_id += 1
+        trace_id = self.data_collector.new_trace_id()
+        return Message(
+            message_id=mid,
+            trace_id=trace_id,
+            timestep=self.current_step,
+            source=source,
+            target=target,
+            layer=layer,
+            modalities=modalities if modalities is not None else frozenset({Modality.TEXT}),
+            emotion=emotion if emotion is not None else Emotion.NEUTRAL,
+            emotional_load=emotional_load,
+            veracity=veracity,
+            salience=salience,
+            parent_message_id=parent_message_id,
+        )
 
-        API pública que usan los agentes para registrar un mensaje sin
-        tocar directamente `active_messages`. Desacopla a los agentes
-        de la representación interna del buffer (hoy lista de tuplas,
-        mañana podría ser una cola con prioridades, buffer con TTL,
-        estructuras por canal, etc.).
+    def emit_message(self, msg: Message) -> None:
+        """Encola un Message en el outbox del paso actual."""
+        self._outbox.append(msg)
 
-        Args:
-            source: Node id del agente emisor.
-            target: Node id del receptor.
-        """
-        self.active_messages.append((source, target))
+    def consume_inbox(self, node_id: int) -> list[Message]:
+        """Devuelve y vacía el inbox de un nodo."""
+        msgs = self._inboxes.get(node_id, [])
+        self._inboxes[node_id] = []
+        return msgs
+
+    def trust(self, source: int, target: int, layer: Layer) -> float:
+        """Devuelve la confianza de la arista source→target en la capa dada."""
+        if isinstance(self.graph, nx.MultiDiGraph):
+            for data in self.graph.get_edge_data(source, target, default={}).values():
+                if data.get("layer") == layer:
+                    return float(data.get("trust", 0.5))
+        return 0.5
+
+    def neighbors_trust(self, node_id: int) -> dict[tuple[int, Layer], float]:
+        """Devuelve {(vecino, capa): trust} para todos los vecinos salientes."""
+        result: dict[tuple[int, Layer], float] = {}
+        if isinstance(self.graph, nx.MultiDiGraph):
+            for nbr in self.graph.successors(node_id):
+                for data in self.graph.get_edge_data(node_id, nbr, default={}).values():
+                    lyr = data.get("layer", Layer.ANALOG)
+                    result[(nbr, lyr)] = float(data.get("trust", 0.5))
+        else:
+            for nbr in self.graph.neighbors(node_id):
+                result[(nbr, Layer.ANALOG)] = 0.5
+        return result
 
     def step(self) -> None:
-        """Avanza la simulación un paso.
+        """Avanza la simulación un paso con dos sub-fases TX/RX (OODA).
 
-        Estructura del tick:
-          1. Vacía `active_messages` (los mensajes son por-paso, no acumulan).
-          2. Ejecuta `step()` de todos los agentes en orden aleatorio.
-          3. Vuelca los mensajes emitidos en este paso al DataCollector.
-          4. Incrementa el contador de pasos.
+        Sub-fase TX: los agentes deciden y emiten usando lo aprendido hasta t-1.
+        Sub-fase RX: los mensajes se entregan a los inboxes y se registran.
         """
-        # 1) Reset del buffer efímero. Si no, los mensajes del paso anterior
-        #    se sumarían a los nuevos (bug al renderizar).
-        self.active_messages = []
-
-        # 2) `agents.shuffle_do("step")` es el helper de Mesa 3.x para
-        #    "aleatoriza el orden y llama .step() a cada agente".
-        #    El orden aleatorio importa: si fuera siempre el mismo,
-        #    introduce sesgo sistemático (los primeros agentes
-        #    siempre actúan antes y "ven" el grafo limpio).
-        #    El RNG es el del modelo, así que con la misma seed -> mismo orden.
+        # Sub-fase TX: reset y ejecución de agentes
+        self._outbox = []
         self.agents.shuffle_do("step")
 
-        # 3) Persiste las trazas en el DataCollector. El paso ACTUAL
-        #    (current_step) indexa los mensajes con el step en que ocurrieron.
-        for src, tgt in self.active_messages:
-            self.data_collector.record(self.current_step, src, tgt)
+        # Sub-fase RX: entrega y registro
+        for msg in self._outbox:
+            self._inboxes[msg.target].append(msg)
+            self.data_collector.record_message(msg)
 
-        # 4) Avanzar el reloj. Tras esto, `current_step` apunta al
-        #    siguiente paso a ejecutar.
+        # active_messages mantiene la lista del paso actual para el visualizador
+        self.active_messages = list(self._outbox)
+
         self.current_step += 1

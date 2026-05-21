@@ -108,6 +108,7 @@ class BaseGraph(ABC):
             u = next(iter(components[i]))
             v = next(iter(components[i + 1]))
             g.add_edge(u, v)
+            g.add_edge(v, u) 
 
         return g
 

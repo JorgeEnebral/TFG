@@ -77,7 +77,6 @@ class StochasticAgent(BaseAgent):
         # 4) Elige un vecino al azar. Distribución uniforme sobre los vecinos.
         target = self.random.choice(neighbors)
 
-        # 5) Notifica al modelo. Sin acceso directo a las listas
-        #    internas: usa `emit_message` como API pública.
-        #    Desacopla al agente del cómo se almacenan los mensajes
-        self.model.emit_message(self.node_id, target)
+        # 5) Crea y emite el mensaje con valores neutros (baseline sin cerebro).
+        msg = self.model.make_message(self.node_id, target)
+        self.model.emit_message(msg)

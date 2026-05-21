@@ -15,9 +15,10 @@ Familias incluidas:
 
 from src.graphs.base import BaseGraph
 from src.graphs.hypergraph import HyperGraph
+from src.graphs.multilayer import MultiLayerGraph
 from src.graphs.random import (
-    BarabasiAlbertGraph,
     ErdosRenyiGraph,
+    ScaleFreeGraph,
     WattsStrogatzGraph,
 )
 from src.graphs.snap import SNAPDownloader, SNAPGraph
@@ -25,9 +26,10 @@ from src.graphs.snap import SNAPDownloader, SNAPGraph
 __all__ = [
     "BaseGraph",
     "ErdosRenyiGraph",
-    "BarabasiAlbertGraph",
+    "ScaleFreeGraph",
     "WattsStrogatzGraph",
     "HyperGraph",
+    "MultiLayerGraph",
     "SNAPDownloader",
     "SNAPGraph",
 ]

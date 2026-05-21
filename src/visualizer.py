@@ -158,7 +158,7 @@ class NetworkAnimator:
         if self.model.active_messages:
             dg = nx.DiGraph()
             dg.add_nodes_from(g.nodes())
-            dg.add_edges_from(self.model.active_messages)
+            dg.add_edges_from((m.source, m.target) for m in self.model.active_messages)
             nx.draw_networkx_edges(
                 dg,
                 self.pos,
@@ -182,8 +182,8 @@ class NetworkAnimator:
         #   - firing: nodos que disparan al menos un mensaje.
         #   - receiving: nodos que reciben al menos un mensaje.
         # Set comprehension para deduplicar y O(1) al consultar pertenencia.
-        firing = {s for s, _ in self.model.active_messages}
-        receiving = {t for _, t in self.model.active_messages}
+        firing = {m.source for m in self.model.active_messages}
+        receiving = {m.target for m in self.model.active_messages}
 
         # Listas paralelas (una entrada por nodo, en el mismo orden que `g.nodes()`).
         # NetworkX las consume así para colorear/redimensionar.
