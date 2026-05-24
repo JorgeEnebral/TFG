@@ -40,8 +40,6 @@ class BayesianAgent(BaseAgent):
         # DECIDE + ACT
         neighbors_trust = self.model.neighbors_trust(self.node_id)
         for action in self.brain.decide(neighbors_trust, self.model.current_step):
-            if action.kind not in ("send", "forward"):
-                continue
             msg = self.model.make_message(
                 source=self.node_id,
                 target=action.target,

@@ -22,7 +22,6 @@ class Action:
         kind: Tipo de operación:
             ``"send"``    — el agente construye y emite un mensaje nuevo.
             ``"forward"`` — el agente reenvía un mensaje recibido sin modificar.
-            ``"silence"`` — el agente decide explícitamente no actuar.
         target: Nodo destinatario de la acción.
         layer: Capa de red por la que se envía.
         message: Mensaje a enviar; ``None`` si lo construye el agente después.
@@ -91,7 +90,7 @@ class EmotionalBrain(Brain):
             steps_per_day: Pasos de simulación por día; determina el decay
                 por paso como ``mood_decay_per_day ** (1 / steps_per_day)``.
             theta_send: Umbral mínimo de score emocional para generar una
-                acción de envío. Score = ``emotional_load × trust``.
+                acción de envío. Score = ``emotional_load x trust``.
         """
         self.mood: dict[Emotion, float] = defaultdict(float)
         self._mood_decay_step: float = mood_decay_per_day ** (1.0 / steps_per_day)
@@ -101,7 +100,7 @@ class EmotionalBrain(Brain):
     def observe(self, msg: Message, sender_trust: float) -> None:
         """Actualiza el humor con la carga emocional del mensaje recibido.
 
-        El impacto en el humor se pondera por ``sender_trust × salience × veracity``:
+        El impacto en el humor se pondera por ``sender_trust x salience x veracity``:
         mensajes de fuentes confiables, relevantes y creíbles mueven más el estado
         emocional del agente.
 
@@ -109,10 +108,13 @@ class EmotionalBrain(Brain):
             msg: Mensaje recibido.
             sender_trust: Confianza en el emisor en [0, 1].
         """
+        # AÑADIR QUE EL TIPO DE MENSAJE (TEXTO, VIDEO) INFLUYE EN LA EMOCION
         weight = sender_trust * msg.salience * msg.veracity
         self.mood[msg.emotion] = min(
             1.0, self.mood[msg.emotion] + msg.emotional_load * weight
-        )
+        ) 
+        # VER SI TANTA MULTIPLICACION HACE QUE DISMINUYA MUCHO CARGA EMOCIONAL
+        # ESTUDIAR EMBEDING TIPO TIWITEER DE MEMORIA
         self._last_msg_id = msg.message_id
 
     def decide(
@@ -123,7 +125,7 @@ class EmotionalBrain(Brain):
         """Genera acciones de envío basándose en la emoción dominante.
 
         Aplica decay al humor, identifica la emoción dominante y genera
-        una ``Action`` por cada vecino cuyo score ``emotional_load × trust``
+        una ``Action`` por cada vecino cuyo score ``emotional_load x trust``
         supera ``theta_send``.
 
         Args:
@@ -150,6 +152,7 @@ class EmotionalBrain(Brain):
             score = emotional_load * trust
             if score < self._theta_send:
                 continue
+            # SIEMPRE MANDA ACCION SEND
             action = Action(kind="send", target=neighbor, layer=layer)
             action.__dict__.update(
                 {

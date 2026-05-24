@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import configs.config as cfg
+import config as cfg
 from src.agents import StochasticAgent
 from src.datacollector import DataCollector
 from src.graphs import (
     BaseGraph,
     ErdosRenyiGraph,
-    HyperGraph,
     MultiLayerGraph,
     ScaleFreeGraph,
     SNAPGraph,
@@ -65,7 +64,7 @@ class Simulation:
                 node_id=node_id,
                 fire_probability=self.fire_probability,
             ),
-            data_collector=self.collector,
+            collector=self.collector,
             seed=self.seed,
         )
 
@@ -180,21 +179,22 @@ def build_graph(g: dict[str, object], seed: int) -> BaseGraph:
             sf_delta_out=g["sf_delta_out"],
             seed=seed,
         )
+    if kind == "multilayer-snap":
+        pass 
     raise ValueError(f"Tipo de grafo desconocido: {kind!r}")
 
 
 def main() -> None:
     """Punto de entrada principal: lee config, construye y ejecuta la simulación."""
+    
     seed = cfg.SIMULATION["seed"]
     sim_time = cfg.SIMULATION["days"] * cfg.SIMULATION["steps_per_day"]
 
     graph = build_graph(cfg.GRAPH, seed=seed)
 
-    folder = (
-        f"snap-{cfg.GRAPH['snap_dataset']}"
-        if cfg.GRAPH["type"] == "snap"
-        else f"{cfg.GRAPH['type']}-{cfg.GRAPH['num_nodes']}"
-    )
+    folder = f"{cfg.GRAPH['type']}-{cfg.AGENT['type']}"
+    if cfg.GRAPH['type'] in ["snap", "multilayer-snap"]: folder += cfg.GRAPH["snap_dataset"]
+    
     out_dir = DATA_DIR / "results" / folder
 
     sim = Simulation(

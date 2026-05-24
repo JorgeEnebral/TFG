@@ -4,9 +4,16 @@ Edita este fichero para cambiar topología, parámetros de simulación y
 opciones de salida sin tocar el código fuente.
 """
 
+SIMULATION = {
+    "days": 60,
+    "steps_per_day": 10,
+    "seed": 42,
+    "interval_ms": 500,
+}
+
 GRAPH = {
-    "type": "erdos",        # erdos | scale_free | watts | snap | multilayer | hyper
-    "num_nodes": 100,
+    "type": "erdos",        # erdos | scale_free | watts | snap | multilayer | multilayer-snap
+    "num_nodes": 10_000,
     "edge_prob": 0.25,      # erdos
     "ws_k": 6,              # watts / multilayer
     "ws_rewire_prob": 0.1,  # watts / multilayer
@@ -17,14 +24,12 @@ GRAPH = {
     "sf_delta_in": 0.2,
     "sf_delta_out": 0.0,
     "snap_dataset": "ego-Facebook",
+    "snap_dir": "./data/snap"
 }
 
-SIMULATION = {
-    "days": 60,
-    "steps_per_day": 10,
+AGENT = {
+    "type": "stochastic",    # stochastic | bayesian
     "fire_probability": 0.20,
-    "seed": 42,
-    "interval_ms": 500,
 }
 
 OUTPUT = {

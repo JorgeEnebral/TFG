@@ -165,7 +165,7 @@ class SNAPDownloader:
     """
 
     def __init__(
-        self, cache_dir: str | Path = "./data/snap", verbose: bool = True
+        self, cache_dir: str | Path, verbose: bool = True
     ) -> None:
         """Crea el downloader y asegura la existencia de `cache_dir`.
 
@@ -294,14 +294,22 @@ class SNAPDownloader:
 
         return result
 
-    def load_as_networkx(self, name: str) -> nx.Graph:
-        """Carga el dataset como grafo de NetworkX.
+    def load_as_networkx(
+        self,
+        name: str,
+        rng: random.Random,
+        directed: bool | None = None,
+    ) -> nx.Graph:
+        """Carga el dataset como grafo de NetworkX, aplicando conversión si es necesario.
 
-        Asegura previamente que está descargado y descomprimido (idempotente).
-        Decide `nx.Graph` vs `nx.DiGraph` según el flag del catálogo.
+        Si `directed` es `None` se respeta la dirección natural del catálogo.
+        Si difiere, convierte: dirigido→no dirigido colapsa aristas; no dirigido→dirigido
+        asigna orientación proporcional al grado de los nodos.
 
         Args:
             name: Clave del dataset en `SNAP_CATALOG`.
+            directed: Si True/False fuerza el tipo de grafo resultante. None = natural.
+            rng: Generador aleatorio, requerido solo cuando se convierte no dirigido→dirigido.
 
         Returns:
             `nx.Graph` o `nx.DiGraph` con los nodos como `int`.
@@ -312,20 +320,45 @@ class SNAPDownloader:
         if name not in SNAP_CATALOG:
             raise KeyError(f"Dataset '{name}' no está en el catálogo.")
 
-        # Descarga + descompresión bajo demanda. Si ya estaba en caché es muy rápido.
         paths = self.download(name, decompress=True)
         txt_path = paths[name]
         info = SNAP_CATALOG[name]
 
-        # Truco común: pasar la CLASE (no una instancia) en `create_using`.
-        # NetworkX la instancia internamente.
         create_using = nx.DiGraph if info.directed else nx.Graph
-
-        # Los ficheros SNAP son edge-lists: dos enteros por línea, comentarios con `#`.
-        # `nodetype=int` convierte los IDs a int (vienen como strings por defecto).
-        return nx.read_edgelist(
+        graph: nx.Graph = nx.read_edgelist(
             txt_path, comments="#", create_using=create_using(), nodetype=int
         )
+
+        want_directed = info.directed if directed is None else directed
+        if info.directed and not want_directed:
+            graph = nx.Graph(graph)
+        elif not info.directed and want_directed:
+            graph = SNAPDownloader._ba_to_directed_prob(graph, rng)
+        return graph
+
+    @staticmethod
+    def _ba_to_directed_prob(graph: nx.Graph, rng: random.Random) -> nx.DiGraph:
+        """Convierte un grafo no dirigido a dirigido orientando cada arista
+        según los grados: la probabilidad de que `v` sea destino es deg(v)/(deg(u)+deg(v)).
+
+        Args:
+            graph: Grafo no dirigido de entrada.
+            rng: Generador aleatorio para la orientación.
+
+        Returns:
+            DiGraph con los mismos nodos y una dirección por arista.
+        """
+        dg = nx.DiGraph()
+        dg.add_nodes_from(graph.nodes())
+        for u, v in graph.edges():
+            deg_u = graph.degree(u)
+            deg_v = graph.degree(v)
+            total = deg_u + deg_v
+            if rng.random() < deg_v / total:
+                dg.add_edge(u, v)
+            else:
+                dg.add_edge(v, u)
+        return dg
 
     @staticmethod
     def _download_file(url: str, dest: Path) -> None:
@@ -381,6 +414,7 @@ class SNAPGraph(BaseGraph):
         self,
         dataset_name: str,
         cache_dir: str | Path = "./data/snap",
+        directed: bool | None = None,
         seed: int | None = None,
     ) -> None:
         """Inicializa el adaptador SNAP.
@@ -393,6 +427,7 @@ class SNAPGraph(BaseGraph):
         super().__init__(seed=seed)
         self.dataset_name = dataset_name
         self.cache_dir = cache_dir
+        self.directed = directed
         # Composición: delega toda la lógica de descarga al downloader.
         self.downloader = SNAPDownloader(cache_dir=cache_dir, verbose=True)
 
@@ -402,31 +437,10 @@ class SNAPGraph(BaseGraph):
         Returns:
             Grafo `nx.Graph` o `nx.DiGraph` correspondiente al dataset.
         """
-        # Cumple el contrato de `BaseGraph`: devolver un `nx.Graph`.
-        # Internamente delega en el downloader. La caché lazy de `BaseGraph`
-        # garantiza que solo se descargue/parsee una vez aunque se acceda
-        # a `.graph` muchas veces.
         rng = random.Random(self.seed)
-        graph: nx.Graph = self.downloader.load_as_networkx(self.dataset_name)
-        return self.ba_to_directed_prob(graph, rng)
-    
-    def ba_to_directed_prob(graph: nx.Graph, rng: random.Random) -> nx.DiGraph:
-        """
-        Convierte un grafo no dirigido a dirigido por probabilidad basado en
-        los grados de los 2 nodos
-        """
-        dg = nx.DiGraph()
-        dg.add_nodes_from(graph.nodes())
-        for u, v in graph.edges():
-            deg_u = graph.degree(u)
-            deg_v = graph.degree(v)
-            total = deg_u + deg_v
-            # prob de que v sea el destino proporcional a su grado
-            if rng.random() < deg_v / total:
-                dg.add_edge(u, v)
-            else:
-                dg.add_edge(v, u)
-        return dg
+        return self.downloader.load_as_networkx(
+            self.dataset_name, directed=self.directed, rng=rng
+        )
 
 
 if __name__ == "__main__":
