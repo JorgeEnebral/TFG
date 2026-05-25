@@ -4,39 +4,173 @@ Edita este fichero para cambiar topología, parámetros de simulación y
 opciones de salida sin tocar el código fuente.
 """
 
-SIMULATION = {
-    "days": 60,
-    "steps_per_day": 10,
-    "seed": 42,
-    "interval_ms": 500,
-}
+from __future__ import annotations
 
-GRAPH = {
-    "type": "erdos",        # erdos | scale_free | watts | snap | multilayer | multilayer-snap
-    "num_nodes": 10_000,
-    "edge_prob": 0.25,      # erdos
-    "ws_k": 6,              # watts / multilayer
-    "ws_rewire_prob": 0.1,  # watts / multilayer
-    # scale_free / multilayer  — alpha + beta + gamma debe sumar 1.0
-    "sf_alpha": 0.41,
-    "sf_beta": 0.54,
-    "sf_gamma": 0.05,
-    "sf_delta_in": 0.2,
-    "sf_delta_out": 0.0,
-    "snap_dataset": "ego-Facebook",
-    "snap_dir": "./data/snap"
-}
+from dataclasses import dataclass, field
+from typing import Literal, Union
 
-AGENT = {
-    "type": "stochastic",    # stochastic | bayesian
-    "fire_probability": 0.20,
-}
 
-OUTPUT = {
-    "basename": "simulation",
-    "export_csv": True,
-    "export_json": True,
-    "render_plots": True,
-    "render_gif": False,
-    "show": False,
-}
+@dataclass
+class SimulationConfig:
+    """Parámetros temporales y de semilla de la simulación.
+
+    Attributes:
+        days: Número de días a simular.
+        steps_per_day: Pasos de mesa por día.
+        seed: Semilla del RNG global.
+        interval_ms: Milisegundos entre frames en la animación.
+    """
+
+    days: int = 60
+    steps_per_day: int = 10
+    seed: int = 42
+    interval_ms: int = 500
+
+
+@dataclass
+class AgentConfig:
+    """Configuración del tipo y comportamiento de los agentes.
+
+    Attributes:
+        type: Clase de agente a instanciar.
+        fire_probability: Probabilidad de disparo por paso (solo stochastic).
+    """
+
+    type: Literal["stochastic", "bayesian"] = "stochastic"
+    fire_probability: float = 0.20
+
+
+@dataclass
+class OutputConfig:
+    """Opciones de exportación y visualización.
+
+    Attributes:
+        basename: Prefijo de los ficheros de salida.
+        export_csv: Exportar trazas a CSV.
+        export_json: Exportar trazas a JSON.
+        render_plots: Generar plots estáticos.
+        render_gif: Guardar la animación como GIF.
+        show: Abrir ventana interactiva matplotlib.
+    """
+
+    basename: str = "simulation"
+    export_csv: bool = True
+    export_json: bool = True
+    render_plots: bool = True
+    render_gif: bool = False
+    show: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Configuraciones de grafo — una clase por topología
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ErdosConfig:
+    """Grafo Erdős–Rényi G(n, p).
+
+    Attributes:
+        num_nodes: Número de nodos.
+        edge_prob: Probabilidad de cada arista.
+        directed: Si True genera DiGraph.
+    """
+
+    type: Literal["erdos"] = field(default="erdos", init=False)
+    num_nodes: int = 10_000
+    edge_prob: float = 0.25
+    directed: bool = False
+
+
+@dataclass
+class ScaleFreeConfig:
+    """Grafo libre de escala (Barabási–Albert extendido).
+
+    Attributes:
+        num_nodes: Número de nodos.
+        alpha: Prob. de añadir arista desde nodo nuevo.
+        beta: Prob. de añadir arista entre nodos existentes.
+        gamma: Prob. de añadir arista hacia nodo nuevo.
+        delta_in: Sesgo de preferencia de entrada.
+        delta_out: Sesgo de preferencia de salida.
+    """
+
+    type: Literal["scale_free"] = field(default="scale_free", init=False)
+    num_nodes: int = 10_000
+    alpha: float = 0.41
+    beta: float = 0.54
+    gamma: float = 0.05
+    delta_in: float = 0.2
+    delta_out: float = 0.0
+
+
+@dataclass
+class WattsConfig:
+    """Grafo pequeño mundo de Watts–Strogatz.
+
+    Attributes:
+        num_nodes: Número de nodos.
+        k: Cada nodo conectado a sus k vecinos más cercanos.
+        rewire_prob: Probabilidad de reconectar cada arista.
+        directed: Si True aplica orientación proporcional al grado.
+    """
+
+    type: Literal["watts"] = field(default="watts", init=False)
+    num_nodes: int = 10_000
+    k: int = 6
+    rewire_prob: float = 0.1
+    directed: bool = False
+
+
+@dataclass
+class SNAPConfig:
+    """Dataset real del repositorio SNAP de Stanford.
+
+    Attributes:
+        dataset_name: Clave del catálogo SNAP (p.ej. "ego-Facebook").
+        cache_dir: Carpeta local donde se cachea el dataset.
+        directed: Si True fuerza grafo dirigido (convirtiendo si es necesario).
+    """
+
+    type: Literal["snap"] = field(default="snap", init=False)
+    dataset_name: str = "ego-Facebook"
+    cache_dir: str = "./data/snap"
+    directed: bool = False
+
+
+@dataclass
+class MultiLayerConfig:
+    """Grafo bicapa con capa analógica (WS) y capa digital (ScaleFree o SNAP).
+
+    La capa digital tiene prioridad: sus aristas no se duplican en la analógica.
+    La capa analógica (WS) siempre se crea con el mismo nº de nodos que la digital.
+    Si `digital` es `SNAPConfig`, la dirección se fuerza a True automáticamente.
+
+    Uso con ScaleFree (por defecto):
+        GRAPH = MultiLayerConfig()
+
+    Uso con SNAP como capa digital:
+        GRAPH = MultiLayerConfig(
+            analog=WattsConfig(k=6, rewire_prob=0.1),         # num_nodes ignorado: lo fija SNAP
+            digital=SNAPConfig(dataset_name="ego-Twitter"),   # dirigido se fuerza a True
+        )
+
+    Attributes:
+        analog: Configuración de la capa analógica (Watts-Strogatz).
+        digital: Configuración de la capa digital (ScaleFree o SNAP).
+    """
+
+    type: Literal["multilayer"] = field(default="multilayer", init=False)
+    analog: WattsConfig = field(default_factory=WattsConfig)
+    digital: Union[ScaleFreeConfig, SNAPConfig] = field(default_factory=ScaleFreeConfig)
+
+
+GraphConfig = Union[ErdosConfig, ScaleFreeConfig, WattsConfig, SNAPConfig, MultiLayerConfig]
+
+# ---------------------------------------------------------------------------
+# Instancias — edita aquí para cambiar la configuración activa
+# ---------------------------------------------------------------------------
+
+SIMULATION: SimulationConfig = SimulationConfig()
+GRAPH: GraphConfig = ErdosConfig()
+AGENT: AgentConfig = AgentConfig()
+OUTPUT: OutputConfig = OutputConfig()

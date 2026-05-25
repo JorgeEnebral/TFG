@@ -121,14 +121,14 @@ class ScaleFreeGraph(BaseGraph):
         self.delta_in = delta_in
         self.delta_out = delta_out
 
-    def build(self) -> nx.MultiDiGraph:
+    def build(self) -> nx.DiGraph:
         """Construye el grafo de libre de escala dirigido.
 
         Returns:
-            ``nx.MultiDiGraph`` dirigido con distribución de grado
+            ``nx.DiGraph`` dirigido con distribución de grado
             power-law en in-grado y out-grado.
         """
-        return nx.scale_free_graph(
+        mg = nx.scale_free_graph(
             n=self.num_nodes,
             alpha=self.alpha,
             beta=self.beta,
@@ -137,6 +137,7 @@ class ScaleFreeGraph(BaseGraph):
             delta_out=self.delta_out,
             seed=self.seed,
         )
+        return nx.DiGraph(mg)
 
 
 class WattsStrogatzGraph(BaseGraph):

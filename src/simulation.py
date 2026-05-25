@@ -8,9 +8,18 @@ Uso:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import config as cfg
-from src.agents import StochasticAgent
+from config import (
+    ErdosConfig,
+    GraphConfig,
+    MultiLayerConfig,
+    ScaleFreeConfig,
+    SNAPConfig,
+    WattsConfig,
+)
+from src.agents import BayesianAgent, EmotionalBrain, StochasticAgent
 from src.datacollector import DataCollector
 from src.graphs import (
     BaseGraph,
@@ -32,6 +41,7 @@ class Simulation:
     def __init__(
         self,
         graph: BaseGraph,
+        agent_type: Literal["stochastic", "bayesian"] = "stochastic",
         fire_probability: float = 0.20,
         sim_time: int = 40,
         interval_ms: int = 500,
@@ -42,7 +52,8 @@ class Simulation:
 
         Args:
             graph: Topología de red ya construida (o lazy).
-            fire_probability: Probabilidad de disparo por agente y paso.
+            agent_type: Tipo de agente a instanciar ("stochastic" o "bayesian").
+            fire_probability: Probabilidad de disparo por paso (solo stochastic).
             sim_time: Número total de pasos a simular.
             interval_ms: Milisegundos entre frames en la animación.
             seed: Semilla del RNG compartido.
@@ -56,14 +67,17 @@ class Simulation:
         self.out_dir = Path(out_dir)
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
+        if agent_type == "bayesian":
+            def agent_factory(model: NetworkModel, node_id: int) -> BayesianAgent:
+                return BayesianAgent(model=model, node_id=node_id, brain=EmotionalBrain())
+        else:
+            def agent_factory(model: NetworkModel, node_id: int) -> StochasticAgent:  # type: ignore[misc]
+                return StochasticAgent(model=model, node_id=node_id, fire_probability=self.fire_probability)
+
         self.collector = DataCollector()
         self.model = NetworkModel(
             graph=self.graph.graph,
-            agent_factory=lambda model, node_id: StochasticAgent(
-                model=model,
-                node_id=node_id,
-                fire_probability=self.fire_probability,
-            ),
+            agent_factory=agent_factory,
             collector=self.collector,
             seed=self.seed,
         )
@@ -136,87 +150,102 @@ class Simulation:
         return {"degree": deg_path, "heatmap": heat_path}
 
 
-def build_graph(g: dict[str, object], seed: int) -> BaseGraph:
-    """Construye el ``BaseGraph`` correcto a partir del dict de configuración.
+def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
+    """Construye el ``BaseGraph`` correcto a partir de la configuración tipada.
 
     Args:
-        g: Diccionario con al menos la clave ``"type"`` y los parámetros
-            específicos de esa topología.
+        g: Instancia de configuración de grafo.
         seed: Semilla del generador aleatorio.
 
     Returns:
         Instancia del ``BaseGraph`` correspondiente al tipo indicado.
 
     Raises:
-        ValueError: Si ``g["type"]`` no corresponde a ninguna topología conocida.
+        ValueError: Si el tipo de configuración no es reconocido.
     """
-    kind = g["type"]
-    if kind == "erdos":
-        return ErdosRenyiGraph(num_nodes=g["num_nodes"], edge_prob=g["edge_prob"], seed=seed)
-    if kind == "scale_free":
+    if isinstance(g, ErdosConfig):
+        return ErdosRenyiGraph(num_nodes=g.num_nodes, edge_prob=g.edge_prob, seed=seed)
+    if isinstance(g, ScaleFreeConfig):
         return ScaleFreeGraph(
-            num_nodes=g["num_nodes"],
-            alpha=g["sf_alpha"],
-            beta=g["sf_beta"],
-            gamma=g["sf_gamma"],
-            delta_in=g["sf_delta_in"],
-            delta_out=g["sf_delta_out"],
+            num_nodes=g.num_nodes,
+            alpha=g.alpha,
+            beta=g.beta,
+            gamma=g.gamma,
+            delta_in=g.delta_in,
+            delta_out=g.delta_out,
             seed=seed,
         )
-    if kind == "watts":
-        return WattsStrogatzGraph(num_nodes=g["num_nodes"], k=g["ws_k"], rewire_prob=g["ws_rewire_prob"], seed=seed)
-    if kind == "snap":
-        return SNAPGraph(dataset_name=g["snap_dataset"], seed=seed)
-    if kind == "multilayer":
-        return MultiLayerGraph(
-            num_nodes=g["num_nodes"],
-            ws_k=g["ws_k"],
-            ws_rewire_prob=g["ws_rewire_prob"],
-            sf_alpha=g["sf_alpha"],
-            sf_beta=g["sf_beta"],
-            sf_gamma=g["sf_gamma"],
-            sf_delta_in=g["sf_delta_in"],
-            sf_delta_out=g["sf_delta_out"],
+    if isinstance(g, WattsConfig):
+        return WattsStrogatzGraph(num_nodes=g.num_nodes, k=g.k, rewire_prob=g.rewire_prob, seed=seed)
+    if isinstance(g, SNAPConfig):
+        return SNAPGraph(dataset_name=g.dataset_name, cache_dir=g.cache_dir, directed=g.directed, seed=seed)
+    if isinstance(g, MultiLayerConfig):
+        digital: BaseGraph
+        if isinstance(g.digital, SNAPConfig):
+            # Capa digital siempre dirigida en multilayer
+            digital = SNAPGraph(
+                dataset_name=g.digital.dataset_name,
+                cache_dir=g.digital.cache_dir,
+                directed=True,
+                seed=seed,
+            )
+            # Forzar build ahora para conocer el nº de nodos real del dataset
+            n = len(digital)
+        else:
+            digital = ScaleFreeGraph(
+                num_nodes=g.digital.num_nodes,
+                alpha=g.digital.alpha,
+                beta=g.digital.beta,
+                gamma=g.digital.gamma,
+                delta_in=g.digital.delta_in,
+                delta_out=g.digital.delta_out,
+                seed=seed,
+            )
+            n = g.digital.num_nodes
+        analog = WattsStrogatzGraph(
+            num_nodes=n,
+            k=g.analog.k,
+            rewire_prob=g.analog.rewire_prob,
             seed=seed,
         )
-    if kind == "multilayer-snap":
-        pass 
-    raise ValueError(f"Tipo de grafo desconocido: {kind!r}")
+        return MultiLayerGraph(digital_graph=digital, analog_graph=analog, seed=seed)
+    raise ValueError(f"Tipo de grafo desconocido: {g!r}")
 
 
 def main() -> None:
     """Punto de entrada principal: lee config, construye y ejecuta la simulación."""
-    
-    seed = cfg.SIMULATION["seed"]
-    sim_time = cfg.SIMULATION["days"] * cfg.SIMULATION["steps_per_day"]
+    seed = cfg.SIMULATION.seed
+    sim_time = cfg.SIMULATION.days * cfg.SIMULATION.steps_per_day
 
     graph = build_graph(cfg.GRAPH, seed=seed)
 
-    folder = f"{cfg.GRAPH['type']}-{cfg.AGENT['type']}"
-    if cfg.GRAPH['type'] in ["snap", "multilayer-snap"]: folder += cfg.GRAPH["snap_dataset"]
-    
+    folder = f"{cfg.GRAPH.type}-{cfg.AGENT.type}"
+    if isinstance(cfg.GRAPH, SNAPConfig):
+        folder += f"-{cfg.GRAPH.dataset_name}"
+
     out_dir = DATA_DIR / "results" / folder
 
     sim = Simulation(
         graph=graph,
-        fire_probability=cfg.SIMULATION["fire_probability"],
+        agent_type=cfg.AGENT.type,
+        fire_probability=cfg.AGENT.fire_probability,
         sim_time=sim_time,
-        interval_ms=cfg.SIMULATION["interval_ms"],
+        interval_ms=cfg.SIMULATION.interval_ms,
         seed=seed,
         out_dir=out_dir,
     )
 
-    headless = not cfg.OUTPUT["render_gif"] and not cfg.OUTPUT["show"]
+    headless = not cfg.OUTPUT.render_gif and not cfg.OUTPUT.show
     if headless:
         sim.run_headless()
     else:
-        gif_path = out_dir / f"{cfg.OUTPUT['basename']}.gif" if cfg.OUTPUT["render_gif"] else None
-        sim.run_with_animation(gif_path=gif_path, show=cfg.OUTPUT["show"])
+        gif_path = out_dir / f"{cfg.OUTPUT.basename}.gif" if cfg.OUTPUT.render_gif else None
+        sim.run_with_animation(gif_path=gif_path, show=cfg.OUTPUT.show)
 
-    if cfg.OUTPUT["export_csv"] or cfg.OUTPUT["export_json"]:
-        sim.export_data(basename=cfg.OUTPUT["basename"])
-    if cfg.OUTPUT["render_plots"]:
-        sim.render_static_plots(basename=cfg.OUTPUT["basename"])
+    if cfg.OUTPUT.export_csv or cfg.OUTPUT.export_json:
+        sim.export_data(basename=cfg.OUTPUT.basename)
+    if cfg.OUTPUT.render_plots:
+        sim.render_static_plots(basename=cfg.OUTPUT.basename)
     print(f"[OK] Total mensajes disparados: {len(sim.collector)}")
 
 

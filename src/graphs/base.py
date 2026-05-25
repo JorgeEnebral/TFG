@@ -125,6 +125,3 @@ class BaseGraph(ABC):
         # Como `.graph` es lazy, esto también dispara la construcción si hace falta.
         n_nodes: int = self.graph.number_of_nodes()
         return n_nodes
-
-    def load_graph(nodes, edges) -> nx.DiGraph:
-        return nx.DiGraph()
