@@ -2,16 +2,32 @@
 Punto de entrada de la simulación.
 
 Uso:
-    python -m src.simulation          # lee configs/config.py
+    python -m src.simulation.simulation          # lee src/config.py
+
+Estructura de salida:
+    data/results/{tipo_grafo}-{tipo_agente}/
+        sim/
+            graph.json          (estructura del grafo, formato node-link)
+            {basename}.csv/.json (trazas de mensajes)
+        graph/
+            graph.png           (visualización del grafo)
+            histograms.png      (distribución de grado y centralidades)
+            metrics.json        (métricas escalares)
+            heatmap.png         (mensajes por par origen-destino)
+        {basename}.gif          (replay post-simulación, si render_gif=True)
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Literal
 
-import config as cfg
-from config import (
+import networkx as nx
+import src.config as cfg
+from src.agents import BayesianAgent, EmotionalBrain, StochasticAgent
+from src.agents.brain import BrainHyperparams
+from src.config import (
     BrainConfig,
     ErdosConfig,
     GraphConfig,
@@ -20,9 +36,6 @@ from config import (
     SNAPConfig,
     WattsConfig,
 )
-from src.agents import BayesianAgent, EmotionalBrain, StochasticAgent
-from src.agents.brain import BrainHyperparams
-from src.datacollector import DataCollector
 from src.graphs import (
     BaseGraph,
     ErdosRenyiGraph,
@@ -31,10 +44,10 @@ from src.graphs import (
     SNAPGraph,
     WattsStrogatzGraph,
 )
-from src.model import NetworkModel
-from src.visualizer import DegreeDistributionPlot, MessageHeatmap, NetworkAnimator
+from src.simulation.datacollector import DataCollector
+from src.simulation.model import NetworkModel
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 
 class Simulation:
@@ -46,7 +59,6 @@ class Simulation:
         agent_type: Literal["stochastic", "bayesian"] = "stochastic",
         fire_probability: float = 0.20,
         sim_time: int = 40,
-        interval_ms: int = 500,
         seed: int = 42,
         out_dir: str | Path = DATA_DIR,
         brain_config: BrainConfig | None = None,
@@ -58,17 +70,17 @@ class Simulation:
             agent_type: Tipo de agente a instanciar ("stochastic" o "bayesian").
             fire_probability: Probabilidad de disparo por paso (solo stochastic).
             sim_time: Número total de pasos a simular.
-            interval_ms: Milisegundos entre frames en la animación.
             seed: Semilla del RNG compartido.
-            out_dir: Directorio de salida para datos y figuras.
+            out_dir: Directorio raíz de salida (se crean subdirectorios ``sim/`` y ``graph/``).
         """
         self.graph = graph
         self.fire_probability = fire_probability
         self.sim_time = sim_time
-        self.interval_ms = interval_ms
         self.seed = seed
         self.out_dir = Path(out_dir)
-        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.sim_dir = self.out_dir / "sim"
+        self.graph_dir = self.out_dir / "graph"
+        self.sim_dir.mkdir(parents=True, exist_ok=True)
 
         if agent_type == "bayesian":
             bc = brain_config if brain_config is not None else BrainConfig()
@@ -87,7 +99,6 @@ class Simulation:
             )
 
             def agent_factory(model: NetworkModel, node_id: int) -> BayesianAgent:
-                # Semilla derivada por nodo ⇒ genética reproducible y heterogénea.
                 brain_seed = (self.seed * 1_000_003) ^ node_id
                 brain = EmotionalBrain(hp=hp, seed=brain_seed)
                 return BayesianAgent(model=model, node_id=node_id, brain=brain)
@@ -103,72 +114,87 @@ class Simulation:
             seed=self.seed,
         )
 
-    def run_with_animation(
-        self,
-        gif_path: str | Path | None = None,
-        show: bool = False,
-    ) -> NetworkAnimator:
-        """Ejecuta la simulación con animación matplotlib.
-
-        Args:
-            gif_path: Si se proporciona, guarda la animación como GIF.
-            show: Si True, abre una ventana matplotlib en tiempo real.
-
-        Returns:
-            El ``NetworkAnimator`` usado, por si el caller quiere reutilizarlo.
-        """
-        animator = NetworkAnimator(
-            model=self.model,
-            sim_time=self.sim_time,
-            interval_ms=self.interval_ms,
-            layout_seed=self.seed,
-            title_suffix=f"p_fire = {self.fire_probability}",
-        )
-        if gif_path is not None:
-            saved = animator.save_gif(gif_path)
-            print(f"[OK] GIF guardado en: {saved}")
-        if show:
-            animator.show()
-        else:
-            animator.close()
-        return animator
-
-    def run_headless(self) -> None:
-        """Ejecuta la simulación sin visualización."""
+    def run(self) -> None:
+        """Ejecuta la simulación (siempre headless)."""
         for _ in range(self.sim_time):
             self.model.step()
 
-    def export_data(self, basename: str = "simulation") -> dict[str, Path]:
-        """Exporta las trazas recogidas a CSV y JSON.
-
-        Args:
-            basename: Prefijo del nombre de archivo sin extensión.
+    def save_graph_structure(self) -> Path:
+        """Guarda la estructura del grafo en formato node-link JSON.
 
         Returns:
-            Diccionario ``{"csv": Path, "json": Path}`` con las rutas escritas.
+            Ruta del fichero escrito (``sim/graph.json``).
         """
-        csv_path = self.collector.to_csv(self.out_dir / f"{basename}.csv")
-        json_path = self.collector.to_json(self.out_dir / f"{basename}.json")
-        print(f"[OK] Trazas CSV  -> {csv_path}")
-        print(f"[OK] Trazas JSON -> {json_path}")
-        return {"csv": csv_path, "json": json_path}
+        path = self.sim_dir / "graph.json"
+        data = nx.node_link_data(self.model.graph)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        return path
 
-    def render_static_plots(self, basename: str = "simulation") -> dict[str, Path]:
-        """Genera los plots estáticos de distribución de grado y heatmap.
+    def export_data(
+        self,
+        export_format: Literal["csv", "json"],
+        basename: str = "simulation",
+    ) -> Path:
+        """Exporta las trazas al formato indicado.
 
         Args:
-            basename: Prefijo del nombre de archivo sin extensión.
+            export_format: ``"csv"`` o ``"json"``.
+            basename: Prefijo del nombre de fichero.
 
         Returns:
-            Diccionario ``{"degree": Path, "heatmap": Path}`` con las rutas.
+            Ruta del fichero escrito.
         """
-        deg_path = self.out_dir / f"{basename}_degree.png"
-        heat_path = self.out_dir / f"{basename}_heatmap.png"
-        DegreeDistributionPlot(self.graph.graph).render(deg_path)
-        MessageHeatmap(self.collector, num_nodes=len(self.graph)).render(heat_path)
-        print(f"[OK] Distribución grado -> {deg_path}")
-        print(f"[OK] Heatmap mensajes   -> {heat_path}")
-        return {"degree": deg_path, "heatmap": heat_path}
+        if export_format == "csv":
+            path = self.collector.to_csv(self.sim_dir / f"{basename}.csv")
+        else:
+            path = self.collector.to_json(self.sim_dir / f"{basename}.json")
+        print(f"[OK] Trazas ({export_format.upper()}) -> {path}")
+        return path
+
+    def render_graph_analysis(self, basename: str = "simulation") -> Path:
+        """Genera análisis estático del grafo: imágenes + metrics.json + heatmap.
+
+        Args:
+            basename: Prefijo para el heatmap.
+
+        Returns:
+            Directorio donde se guardaron los ficheros.
+        """
+        from src.visualization.plots import analyse_graph  # lazy: evita import circular
+        from src.visualization.visualizer import MessageHeatmap  # lazy: ídem
+
+        self.graph_dir.mkdir(parents=True, exist_ok=True)
+        analyse_graph(self.model.graph, basename, out_dir=self.graph_dir, seed=self.seed)
+        heatmap_path = self.graph_dir / f"{basename}_heatmap.png"
+        MessageHeatmap(self.collector, num_nodes=len(self.graph)).render(heatmap_path)
+        print(f"[OK] Análisis grafo -> {self.graph_dir}")
+        return self.graph_dir
+
+    def render_gif(
+        self,
+        messages_path: Path,
+        interval_ms: int = 500,
+        basename: str = "simulation",
+    ) -> Path:
+        """Genera GIF de replay a partir de los ficheros guardados.
+
+        Args:
+            messages_path: Ruta al fichero de mensajes (CSV o JSON).
+            interval_ms: Milisegundos entre frames.
+            basename: Prefijo del nombre del GIF.
+
+        Returns:
+            Ruta del GIF escrito.
+        """
+        from src.visualization.visualizer import PostSimAnimator  # lazy: evita import circular
+
+        graph_path = self.sim_dir / "graph.json"
+        gif_path = self.out_dir / f"{basename}.gif"
+        animator = PostSimAnimator(graph_path=graph_path, messages_path=messages_path)
+        saved = animator.save_gif(gif_path, interval_ms=interval_ms, layout_seed=self.seed)
+        print(f"[OK] GIF guardado en: {saved}")
+        return saved
 
 
 def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
@@ -203,14 +229,12 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
     if isinstance(g, MultiLayerConfig):
         digital: BaseGraph
         if isinstance(g.digital, SNAPConfig):
-            # Capa digital siempre dirigida en multilayer
             digital = SNAPGraph(
                 dataset_name=g.digital.dataset_name,
                 cache_dir=g.digital.cache_dir,
                 directed=True,
                 seed=seed,
             )
-            # Forzar build ahora para conocer el nº de nodos real del dataset
             n = len(digital)
         else:
             digital = ScaleFreeGraph(
@@ -251,24 +275,30 @@ def main() -> None:
         agent_type=cfg.AGENT.type,
         fire_probability=cfg.AGENT.fire_probability,
         sim_time=sim_time,
-        interval_ms=cfg.SIMULATION.interval_ms,
         seed=seed,
         out_dir=out_dir,
         brain_config=cfg.AGENT.brain,
     )
 
-    headless = not cfg.OUTPUT.render_gif and not cfg.OUTPUT.show
-    if headless:
-        sim.run_headless()
-    else:
-        gif_path = out_dir / f"{cfg.OUTPUT.basename}.gif" if cfg.OUTPUT.render_gif else None
-        sim.run_with_animation(gif_path=gif_path, show=cfg.OUTPUT.show)
-
-    if cfg.OUTPUT.export_csv or cfg.OUTPUT.export_json:
-        sim.export_data(basename=cfg.OUTPUT.basename)
-    if cfg.OUTPUT.render_plots:
-        sim.render_static_plots(basename=cfg.OUTPUT.basename)
+    sim.run()
     print(f"[OK] Total mensajes disparados: {len(sim.collector)}")
+
+    messages_path: Path | None = None
+    if cfg.OUTPUT.save_graph:
+        sim.save_graph_structure()
+    if cfg.OUTPUT.export_format != "none":
+        messages_path = sim.export_data(
+            export_format=cfg.OUTPUT.export_format,
+            basename=cfg.OUTPUT.basename,
+        )
+    if cfg.OUTPUT.render_plots:
+        sim.render_graph_analysis(basename=cfg.OUTPUT.basename)
+    if cfg.OUTPUT.render_gif and messages_path is not None:
+        sim.render_gif(
+            messages_path=messages_path,
+            interval_ms=cfg.SIMULATION.interval_ms,
+            basename=cfg.OUTPUT.basename,
+        )
 
 
 if __name__ == "__main__":

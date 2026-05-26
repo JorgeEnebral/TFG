@@ -95,7 +95,7 @@ class DataCollector:
 
     def record_message(self, msg: object) -> Interaction:
         """Registra un Message rico (Fase 1+). Delega en record()."""
-        from src.messages import Message, Modality  # import local para evitar circular
+        from src.messages import Message  # import local para evitar circular
 
         assert isinstance(msg, Message)
         modalities_str = "|".join(sorted(m.value for m in msg.modalities)) or "text"
@@ -239,4 +239,3 @@ class DataCollector:
             # se puede quitar para ahorrar bytes.
             json.dump([asdict(tr) for tr in self.interactions], f, indent=2)
         return path
-

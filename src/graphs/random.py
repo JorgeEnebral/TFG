@@ -6,11 +6,12 @@ Tres familias muy estudiadas en la literatura de redes complejas:
   - Erdős-Rényi G(n, p):
       cada par de nodos está conectado con probabilidad `p`, independiente.
 
-  - Barabási-Albert (preferential attachment):
-      crecimiento incremental: cada nodo nuevo se conecta a `m` existentes
-      con probabilidad proporcional al grado de cada candidato. Produce
-      distribución de grado libre de escala (power-law) y "hubs". Es el
-      modelo canónico para redes sociales/citación a gran escala.
+  - Scale-Free (libre de escala):
+      Topología de red caracterizada por una distribución de grado que sigue 
+      una ley de potencia P(k) ~ k^gamma. La mayoría de los nodos posee muy pocos 
+      enlaces, mientras que una minoría ("hubs") concentra la conectividad global. 
+      Carece de una escala o "nodo típico", siendo el modelo estructural que define la 
+      arquitectura del Internet físico, la Web y sistemas metabólicos.
 
   - Watts-Strogatz (small-world):
       parte de un anillo regular k-vecinos y recablea cada arista con

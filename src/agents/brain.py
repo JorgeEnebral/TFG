@@ -1,4 +1,5 @@
-"""Cerebro de los agentes: interfaces y lógica de toma de decisiones.
+"""
+Cerebro de los agentes: interfaces y lógica de toma de decisiones.
 
 Define la interfaz abstracta ``Brain``, el dataclass ``Action`` y la
 implementación ``EmotionalBrain``: un cerebro vectorial de 11 dimensiones
@@ -484,7 +485,7 @@ class EmotionalBrain(Brain):
                     )
                 )
 
-        actions.extend(self._decide_forwards(neighbors_trust, timestep))
+        actions.extend(self._decide_forwards(neighbors_trust))
         return actions
 
     # --- Helpers de decisión ----------------------------------------------
@@ -566,7 +567,6 @@ class EmotionalBrain(Brain):
     def _decide_forwards(
         self,
         neighbors_trust: dict[tuple[int, Layer], float],
-        timestep: int,
     ) -> list[Action]:
         """Decide reenvíos de mensajes recientes (HY-8)."""
         if not self._recent_msgs:

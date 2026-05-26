@@ -219,26 +219,6 @@ Cada HY indica el rango propuesto y la referencia que lo justifica. **No se cita
 
 ---
 
-## Verificación
-
-1. **Tests unitarios nuevos** (`tests/test_brain.py` — crear):
-   - `test_decay_halves_after_halflife()` — tras `h` steps el componente cae a ~0.5.
-   - `test_modality_gain_monotonic()` — `{TEXT,VIDEO,AUDIO}` > `{TEXT,VIDEO}` > `{TEXT}`.
-   - `test_circadian_peaks()` — `attention` máxima ~h=10, `anger` máxima ~h=22.
-   - `test_p_create_digital_grows_log_with_followers()` — slope ≈ `1/K_follower` en escala log.
-   - `test_target_sampling_respects_layer_randomness()` — Monte Carlo: capa Dunbar-150 tiene mayor entropía de elección que Dunbar-5.
-
-2. **Ejecución E2E**: `python -m src.simulation` con `MultiLayerConfig` (10k nodos, 60 días = 1440 steps). Verificar en el CSV de trazas:
-   - Distribución horaria de emisiones tiene picos cerca de 10h (positivo) y 22h (negativo).
-   - Mensajes con `modalities={TEXT,VIDEO,AUDIO}` y `emotional_load` alto generan más reenvíos en t+1, t+2 que solo `{TEXT}`.
-   - Agentes con `len(predecessors)` digital alto emiten más.
-
-3. **Notebook de validación** (`src/notebooks/agente_inteligente.ipynb` — opcional, sólo si tras la implementación queremos visualizar): heatmap embedding × tiempo de un agente representativo, curva de decay observada vs. teórica por dimensión.
-
-4. **`mypy --strict src/agents/`** debe pasar sin nuevos `Any`.
-
----
-
 ## Resumen de HY y citas (índice)
 
 | HY | Parámetro | Cita principal |

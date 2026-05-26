@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from src.agents.base import BaseAgent
 
 if TYPE_CHECKING:
-    from src.model import NetworkModel
+    from src.simulation import NetworkModel
 
 
 class StochasticAgent(BaseAgent):

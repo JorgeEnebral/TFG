@@ -7,10 +7,11 @@ sobre la que viven los agentes.
 
 Familias incluidas:
   - `BaseGraph`            : interfaz común (clase abstracta).
-  - Aleatorios clásicos    : Erdős-Rényi, Barabási-Albert, Watts-Strogatz.
-  - Hipergrafos            : `HyperGraph` (hiperaristas + proyección clique).
+  - Aleatorios clásicos    : Erdős-Rényi, ScaleFreeGraph, Watts-Strogatz.
   - Datasets reales (SNAP) : `SNAPGraph` + `SNAPDownloader` para cargar
                              redes sociales/de citación reales.
+  - Multileyer             : capa digital puede ser SNAP o ScaleFreeGraph
+                             capa analogica es Watts-Strogatz.
 """
 
 from src.graphs.base import BaseGraph

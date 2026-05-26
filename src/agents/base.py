@@ -21,7 +21,7 @@ import mesa
 
 if TYPE_CHECKING:
     # Solo se ejecuta en análisis estático -> no hay import real en runtime.
-    from src.model import NetworkModel
+    from src.simulation import NetworkModel
 
 
 class BaseAgent(mesa.Agent):  # type: ignore

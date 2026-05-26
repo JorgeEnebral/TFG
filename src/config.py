@@ -1,4 +1,5 @@
-"""Configuración centralizada de la simulación.
+"""
+Configuración centralizada de la simulación.
 
 Edita este fichero para cambiar topología, parámetros de simulación y
 opciones de salida sin tocar el código fuente.
@@ -83,19 +84,17 @@ class OutputConfig:
 
     Attributes:
         basename: Prefijo de los ficheros de salida.
-        export_csv: Exportar trazas a CSV.
-        export_json: Exportar trazas a JSON.
-        render_plots: Generar plots estáticos.
-        render_gif: Guardar la animación como GIF.
-        show: Abrir ventana interactiva matplotlib.
+        export_format: Formato de exportación de trazas: ``"csv"``, ``"json"`` o ``"none"``.
+        save_graph: Guardar la estructura del grafo (nodos + aristas) en JSON.
+        render_plots: Generar análisis estático del grafo (imágenes + metrics.json).
+        render_gif: Generar GIF de replay post-simulación.
     """
 
     basename: str = "simulation"
-    export_csv: bool = True
-    export_json: bool = True
+    export_format: Literal["csv", "json", "none"] = "csv"
+    save_graph: bool = True
     render_plots: bool = True
     render_gif: bool = False
-    show: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +103,7 @@ class OutputConfig:
 
 @dataclass
 class ErdosConfig:
-    """Grafo Erdős–Rényi G(n, p).
+    """Grafo Erdős Rényi G(n, p).
 
     Attributes:
         num_nodes: Número de nodos.
@@ -120,7 +119,7 @@ class ErdosConfig:
 
 @dataclass
 class ScaleFreeConfig:
-    """Grafo libre de escala (Barabási–Albert extendido).
+    """Grafo libre de escala.
 
     Attributes:
         num_nodes: Número de nodos.
@@ -142,7 +141,7 @@ class ScaleFreeConfig:
 
 @dataclass
 class WattsConfig:
-    """Grafo pequeño mundo de Watts–Strogatz.
+    """Grafo pequeño mundo de Watts Strogatz.
 
     Attributes:
         num_nodes: Número de nodos.

@@ -28,8 +28,8 @@ import mesa
 import networkx as nx
 
 from src.agents import BaseAgent
-from src.datacollector import DataCollector
 from src.messages import Emotion, Layer, Message, Modality
+from src.simulation.datacollector import DataCollector
 
 
 class NetworkModel(mesa.Model):  # type: ignore

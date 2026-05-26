@@ -1,4 +1,5 @@
-"""Grafo bicapa que combina una capa analógica y una capa digital.
+"""
+Grafo bicapa que combina una capa analógica y una capa digital.
 
 La capa analógica (Watts-Strogatz) modela relaciones cara a cara con
 confianza basada en distancia de Dunbar. La capa digital (ScaleFree o SNAP)

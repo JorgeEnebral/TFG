@@ -1,4 +1,9 @@
-"""Agente con cerebro bayesiano: bucle OODA (Observe-Orient-Decide-Act)."""
+"""
+Agente con cerebro bayesiano:
+bucle OODA (Observe-Orient-Decide-Act) simplificado.
+
+Omite Orient -> (Observe-Decide-Act)
+"""
 
 from __future__ import annotations
 
@@ -9,7 +14,7 @@ from src.agents.brain import Brain
 from src.messages import Layer
 
 if TYPE_CHECKING:
-    from src.model import NetworkModel
+    from src.simulation import NetworkModel
 
 
 class BayesianAgent(BaseAgent):
