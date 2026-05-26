@@ -106,10 +106,20 @@ class NetworkModel(mesa.Model):  # type: ignore
         modalities: frozenset[Modality] | None = None,
         parent_message_id: int | None = None,
     ) -> Message:
-        """Crea un Message con message_id y timestep asignados automáticamente."""
+        """Crea un Message con message_id y timestep asignados automáticamente.
+
+        En la capa analógica las modalidades se fuerzan a ``{AUDIO}``
+        (interacción cara a cara) independientemente de lo que pase el caller.
+        """
         mid = self._next_message_id
         self._next_message_id += 1
         trace_id = self.data_collector.new_trace_id()
+        if layer is Layer.ANALOG:
+            final_modalities: frozenset[Modality] = frozenset({Modality.AUDIO})
+        elif modalities is not None:
+            final_modalities = modalities
+        else:
+            final_modalities = frozenset({Modality.TEXT})
         return Message(
             message_id=mid,
             trace_id=trace_id,
@@ -117,13 +127,35 @@ class NetworkModel(mesa.Model):  # type: ignore
             source=source,
             target=target,
             layer=layer,
-            modalities=modalities if modalities is not None else frozenset({Modality.TEXT}),
+            modalities=final_modalities,
             emotion=emotion if emotion is not None else Emotion.NEUTRAL,
             emotional_load=emotional_load,
             veracity=veracity,
             salience=salience,
             parent_message_id=parent_message_id,
         )
+
+    def followers(self, node_id: int, layer: Layer) -> int:
+        """Cuenta predecesores del nodo en la capa dada.
+
+        En grafos no multilayer devuelve 0 (no hay noción de followers por capa).
+
+        Args:
+            node_id: Nodo consultado.
+            layer: Capa de red.
+
+        Returns:
+            Número de predecesores en esa capa, o 0 si no aplica.
+        """
+        if not isinstance(self.graph, nx.MultiDiGraph):
+            return 0
+        count = 0
+        for pred in self.graph.predecessors(node_id):
+            for data in self.graph.get_edge_data(pred, node_id, default={}).values():
+                if data.get("layer") == layer:
+                    count += 1
+                    break
+        return count
 
     def emit_message(self, msg: Message) -> None:
         """Encola un Message en el outbox del paso actual."""

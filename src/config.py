@@ -22,9 +22,44 @@ class SimulationConfig:
     """
 
     days: int = 60
-    steps_per_day: int = 10
+    steps_per_day: int = 24
     seed: int = 42
     interval_ms: int = 500
+
+
+@dataclass
+class BrainConfig:
+    """Hiperparámetros del ``EmotionalBrain`` (ver agente_inteligente.md).
+
+    Todos los defaults provienen de literatura empírica. Edita aquí para
+    barrer experimentos. ``None`` en cualquier campo significa "usa el
+    default del propio ``BrainHyperparams``".
+
+    Attributes:
+        p_create_analog: HY-1. Prob. horaria de emitir mensaje analógico.
+        p_create_digital_base: HY-2. Prob. base digital antes del escalado.
+        k_follower: HY-2. Denominador del término log(1+followers).
+        theta_send: HY-7. Umbral vectorial de emisión.
+        forward_base: HY-8. Probabilidad base de reenvío.
+        forward_boost_anger: HY-8. Bonus a p_forward por dim anger.
+        forward_boost_surprise: HY-8. Bonus a p_forward por dim surprise.
+        attention_capacity: HY-10. Mensajes/step antes de atenuar atención.
+        self_confidence_floor: HY-11. Piso de la escala (0.5 ⇒ rango 0.5×–1.5×).
+        genetics_mu: HY-5. Media de la TruncNormal de genética.
+        genetics_sigma: HY-5. Desviación típica.
+    """
+
+    p_create_analog: float = 0.05
+    p_create_digital_base: float = 0.02
+    k_follower: float = 5.0
+    theta_send: float = 0.35
+    forward_base: float = 0.08
+    forward_boost_anger: float = 0.20
+    forward_boost_surprise: float = 0.10
+    attention_capacity: int = 7
+    self_confidence_floor: float = 0.5
+    genetics_mu: float = 0.5
+    genetics_sigma: float = 0.15
 
 
 @dataclass
@@ -34,10 +69,12 @@ class AgentConfig:
     Attributes:
         type: Clase de agente a instanciar.
         fire_probability: Probabilidad de disparo por paso (solo stochastic).
+        brain: Hiperparámetros del cerebro (sólo si ``type == "bayesian"``).
     """
 
     type: Literal["stochastic", "bayesian"] = "stochastic"
     fire_probability: float = 0.20
+    brain: BrainConfig = field(default_factory=BrainConfig)
 
 
 @dataclass

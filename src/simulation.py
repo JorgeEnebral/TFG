@@ -12,6 +12,7 @@ from typing import Literal
 
 import config as cfg
 from config import (
+    BrainConfig,
     ErdosConfig,
     GraphConfig,
     MultiLayerConfig,
@@ -20,6 +21,7 @@ from config import (
     WattsConfig,
 )
 from src.agents import BayesianAgent, EmotionalBrain, StochasticAgent
+from src.agents.brain import BrainHyperparams
 from src.datacollector import DataCollector
 from src.graphs import (
     BaseGraph,
@@ -47,6 +49,7 @@ class Simulation:
         interval_ms: int = 500,
         seed: int = 42,
         out_dir: str | Path = DATA_DIR,
+        brain_config: BrainConfig | None = None,
     ) -> None:
         """Inicializa la simulación creando el modelo y el recolector.
 
@@ -68,8 +71,26 @@ class Simulation:
         self.out_dir.mkdir(parents=True, exist_ok=True)
 
         if agent_type == "bayesian":
+            bc = brain_config if brain_config is not None else BrainConfig()
+            hp = BrainHyperparams(
+                p_create_analog=bc.p_create_analog,
+                p_create_digital_base=bc.p_create_digital_base,
+                k_follower=bc.k_follower,
+                theta_send=bc.theta_send,
+                forward_base=bc.forward_base,
+                forward_boost_anger=bc.forward_boost_anger,
+                forward_boost_surprise=bc.forward_boost_surprise,
+                attention_capacity=bc.attention_capacity,
+                self_confidence_floor=bc.self_confidence_floor,
+                genetics_mu=bc.genetics_mu,
+                genetics_sigma=bc.genetics_sigma,
+            )
+
             def agent_factory(model: NetworkModel, node_id: int) -> BayesianAgent:
-                return BayesianAgent(model=model, node_id=node_id, brain=EmotionalBrain())
+                # Semilla derivada por nodo ⇒ genética reproducible y heterogénea.
+                brain_seed = (self.seed * 1_000_003) ^ node_id
+                brain = EmotionalBrain(hp=hp, seed=brain_seed)
+                return BayesianAgent(model=model, node_id=node_id, brain=brain)
         else:
             def agent_factory(model: NetworkModel, node_id: int) -> StochasticAgent:  # type: ignore[misc]
                 return StochasticAgent(model=model, node_id=node_id, fire_probability=self.fire_probability)
@@ -233,6 +254,7 @@ def main() -> None:
         interval_ms=cfg.SIMULATION.interval_ms,
         seed=seed,
         out_dir=out_dir,
+        brain_config=cfg.AGENT.brain,
     )
 
     headless = not cfg.OUTPUT.render_gif and not cfg.OUTPUT.show
