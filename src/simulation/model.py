@@ -51,7 +51,7 @@ class NetworkModel(mesa.Model):  # type: ignore
 
     def __init__(
         self,
-        graph: nx.Graph,
+        graph: nx.MultiDiGraph,
         agent_factory: Callable[[NetworkModel, int], BaseAgent],
         collector: DataCollector,
         seed: int = 42,
@@ -138,17 +138,13 @@ class NetworkModel(mesa.Model):  # type: ignore
     def followers(self, node_id: int, layer: Layer) -> int:
         """Cuenta predecesores del nodo en la capa dada.
 
-        En grafos no multilayer devuelve 0 (no hay noción de followers por capa).
-
         Args:
             node_id: Nodo consultado.
             layer: Capa de red.
 
         Returns:
-            Número de predecesores en esa capa, o 0 si no aplica.
+            Número de predecesores en esa capa.
         """
-        if not isinstance(self.graph, nx.MultiDiGraph):
-            return 0
         count = 0
         for pred in self.graph.predecessors(node_id):
             for data in self.graph.get_edge_data(pred, node_id, default={}).values():
@@ -169,23 +165,18 @@ class NetworkModel(mesa.Model):  # type: ignore
 
     def trust(self, source: int, target: int, layer: Layer) -> float:
         """Devuelve la confianza de la arista source→target en la capa dada."""
-        if isinstance(self.graph, nx.MultiDiGraph):
-            for data in self.graph.get_edge_data(source, target, default={}).values():
-                if data.get("layer") == layer:
-                    return float(data.get("trust", 0.5))
+        for data in self.graph.get_edge_data(source, target, default={}).values():
+            if data.get("layer") == layer:
+                return float(data.get("trust", 0.5))
         return 0.5
 
     def neighbors_trust(self, node_id: int) -> dict[tuple[int, Layer], float]:
         """Devuelve {(vecino, capa): trust} para todos los vecinos salientes."""
         result: dict[tuple[int, Layer], float] = {}
-        if isinstance(self.graph, nx.MultiDiGraph):
-            for nbr in self.graph.successors(node_id):
-                for data in self.graph.get_edge_data(node_id, nbr, default={}).values():
-                    lyr = data.get("layer", Layer.ANALOG)
-                    result[(nbr, lyr)] = float(data.get("trust", 0.5))
-        else:
-            for nbr in self.graph.neighbors(node_id):
-                result[(nbr, Layer.ANALOG)] = 0.5
+        for nbr in self.graph.successors(node_id):
+            for data in self.graph.get_edge_data(node_id, nbr, default={}).values():
+                lyr = data.get("layer", Layer.ANALOG)
+                result[(nbr, lyr)] = float(data.get("trust", 0.5))
         return result
 
     def step(self) -> None:

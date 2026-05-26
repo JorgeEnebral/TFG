@@ -96,7 +96,7 @@ def draw_graph(
         node_size=ns, width=0.3, alpha=0.8,
         node_color=_NODE, edge_color=_EDGE,
         with_labels=False,
-        arrows=G.is_directed(),
+        arrows=G.graph.get("directed", G.is_directed()),
     )
     ax.set_title(title, color="white", fontsize=12, pad=10)
     ax.axis("off")

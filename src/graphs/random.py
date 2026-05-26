@@ -7,10 +7,10 @@ Tres familias muy estudiadas en la literatura de redes complejas:
       cada par de nodos está conectado con probabilidad `p`, independiente.
 
   - Scale-Free (libre de escala):
-      Topología de red caracterizada por una distribución de grado que sigue 
-      una ley de potencia P(k) ~ k^gamma. La mayoría de los nodos posee muy pocos 
-      enlaces, mientras que una minoría ("hubs") concentra la conectividad global. 
-      Carece de una escala o "nodo típico", siendo el modelo estructural que define la 
+      Topología de red caracterizada por una distribución de grado que sigue
+      una ley de potencia P(k) ~ k^gamma. La mayoría de los nodos posee muy pocos
+      enlaces, mientras que una minoría ("hubs") concentra la conectividad global.
+      Carece de una escala o "nodo típico", siendo el modelo estructural que define la
       arquitectura del Internet físico, la Web y sistemas metabólicos.
 
   - Watts-Strogatz (small-world):
@@ -24,6 +24,7 @@ from __future__ import annotations
 import networkx as nx
 
 from src.graphs.base import BaseGraph
+from src.messages import Layer
 
 
 class ErdosRenyiGraph(BaseGraph):
@@ -32,8 +33,8 @@ class ErdosRenyiGraph(BaseGraph):
     Attributes:
         num_nodes: Número de nodos n.
         edge_prob: Probabilidad p en [0, 1] de cada arista.
-        connected: Si True, postprocesa el grafo con `ensure_connected()`
-            para que no haya componentes aisladas.
+        connected: Si True, postprocesa el grafo con `ensure_connected()`.
+        layer: Capa asignada a todas las aristas.
         seed: Heredado de `BaseGraph`; semilla del generador de NetworkX.
     """
 
@@ -43,6 +44,7 @@ class ErdosRenyiGraph(BaseGraph):
         edge_prob: float,
         seed: int | None = None,
         connected: bool = True,
+        layer: Layer = Layer.ANALOG,
     ) -> None:
         """Inicializa la configuración del grafo Erdős-Rényi.
 
@@ -51,24 +53,20 @@ class ErdosRenyiGraph(BaseGraph):
             edge_prob: Probabilidad p de cada arista.
             seed: Semilla del generador.
             connected: Si True, fuerza conexión añadiendo aristas mínimas.
+            layer: Capa asignada a todas las aristas.
         """
-        # Llama al padre para guardar `seed` e inicializar la caché `_graph`.
-        super().__init__(seed=seed)
-
+        super().__init__(seed=seed, layer=layer)
         self.num_nodes = num_nodes
         self.edge_prob = edge_prob
         self.connected = connected
 
-    def build(self) -> nx.Graph:
-        """Construye el grafo Erdős-Rényi.
+    def _build_topology(self) -> nx.Graph:
+        """Construye la topología Erdős-Rényi desnuda.
 
         Returns:
-            Grafo `nx.Graph` no dirigido con `num_nodes` nodos. Si
-            `self.connected` es True, está garantizado conexo.
+            Grafo `nx.Graph` no dirigido con `num_nodes` nodos.
         """
-        # Generador estándar de NetworkX. Devuelve un `nx.Graph` no dirigido.
         g = nx.erdos_renyi_graph(n=self.num_nodes, p=self.edge_prob, seed=self.seed)
-
         if self.connected:
             g = self.ensure_connected(g)
         return g
@@ -90,6 +88,7 @@ class ScaleFreeGraph(BaseGraph):
             elegido por distribución de out-grado.
         delta_in: Sesgo para la selección por in-grado.
         delta_out: Sesgo para la selección por out-grado.
+        layer: Capa asignada a todas las aristas (default DIGITAL, acorde a su naturaleza dirigida).
         seed: Semilla del generador.
     """
 
@@ -102,6 +101,7 @@ class ScaleFreeGraph(BaseGraph):
         delta_in: float = 0.2,
         delta_out: float = 0.0,
         seed: int | None = None,
+        layer: Layer = Layer.DIGITAL,
     ) -> None:
         """Inicializa la configuración del grafo de libre de escala.
 
@@ -113,8 +113,9 @@ class ScaleFreeGraph(BaseGraph):
             delta_in: Sesgo de selección por in-grado.
             delta_out: Sesgo de selección por out-grado.
             seed: Semilla del generador.
+            layer: Capa asignada a todas las aristas.
         """
-        super().__init__(seed=seed)
+        super().__init__(seed=seed, layer=layer)
         self.num_nodes = num_nodes
         self.alpha = alpha
         self.beta = beta
@@ -122,12 +123,11 @@ class ScaleFreeGraph(BaseGraph):
         self.delta_in = delta_in
         self.delta_out = delta_out
 
-    def build(self) -> nx.DiGraph:
-        """Construye el grafo de libre de escala dirigido.
+    def _build_topology(self) -> nx.DiGraph:
+        """Construye la topología libre de escala desnuda.
 
         Returns:
-            ``nx.DiGraph`` dirigido con distribución de grado
-            power-law en in-grado y out-grado.
+            ``nx.DiGraph`` dirigido con distribución de grado power-law.
         """
         mg = nx.scale_free_graph(
             n=self.num_nodes,
@@ -149,9 +149,7 @@ class WattsStrogatzGraph(BaseGraph):
         k: Cada nodo está conectado a sus `k` vecinos más próximos en el
             anillo (debe ser par para que el anillo sea simétrico).
         rewire_prob: Probabilidad en [0, 1] de recablear cada arista.
-            `p = 0` -> red regular pura (mucho clustering, caminos largos).
-            `p = 1` -> casi aleatoria (poco clustering, caminos cortos).
-            `p ~ 0.1` -> régimen "small-world".
+        layer: Capa asignada a todas las aristas.
         seed: Semilla del generador.
     """
 
@@ -161,6 +159,7 @@ class WattsStrogatzGraph(BaseGraph):
         k: int,
         rewire_prob: float,
         seed: int | None = None,
+        layer: Layer = Layer.ANALOG,
     ) -> None:
         """Inicializa la configuración del grafo Watts-Strogatz.
 
@@ -169,22 +168,19 @@ class WattsStrogatzGraph(BaseGraph):
             k: Vecinos más próximos en el anillo (par).
             rewire_prob: Probabilidad de recablear cada arista.
             seed: Semilla del generador.
+            layer: Capa asignada a todas las aristas.
         """
-        super().__init__(seed=seed)
+        super().__init__(seed=seed, layer=layer)
         self.num_nodes = num_nodes
         self.k = k
         self.rewire_prob = rewire_prob
 
-    def build(self) -> nx.Graph:
-        """Construye el grafo Watts-Strogatz.
+    def _build_topology(self) -> nx.Graph:
+        """Construye la topología Watts-Strogatz desnuda.
 
         Returns:
-            Grafo `nx.Graph` small-world. Suele ser conexo por construcción
-            salvo combinaciones extremas de `rewire_prob` y `k` bajos.
+            Grafo `nx.Graph` small-world.
         """
-        # `p` aquí es la prob de recableo, no de arista.
-        # NetworkX puede producir grafos no conexos si `p` es alta y `k` baja,
-        # pero por construcción suele ser conexo.
         return nx.watts_strogatz_graph(
             n=self.num_nodes, k=self.k, p=self.rewire_prob, seed=self.seed
         )

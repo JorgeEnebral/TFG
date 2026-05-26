@@ -186,12 +186,19 @@ def compute_graph_metrics(G: nx.Graph, seed: int = 42) -> ComputedMetrics:
     directamente a JSON. Usa ``metrics_to_json_safe()`` antes de guardar.
 
     Args:
-        G: Grafo de NetworkX.
+        G: Grafo de NetworkX. Si es ``MultiGraph``/``MultiDiGraph``, se colapsa
+            a ``DiGraph``/``Graph`` (los algoritmos de NX no soportan multigrafos).
         seed: Semilla para algoritmos aproximados.
 
     Returns:
         Dict con métricas escalares + centralidades por nodo.
     """
+    # Varios algoritmos de NetworkX (transitivity, clustering, eigenvector…)
+    # no están implementados para multigrafos. Como los grafos de la simulación
+    # no tienen multi-aristas reales (solo una arista por par direccional),
+    # el colapso es sin pérdida de información topológica.
+    if isinstance(G, nx.MultiGraph):
+        G = nx.DiGraph(G) if G.is_directed() else nx.Graph(G)
     is_dir = G.is_directed()
     n = G.number_of_nodes()
     m = G.number_of_edges()

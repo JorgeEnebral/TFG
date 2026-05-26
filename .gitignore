@@ -10,8 +10,8 @@ __pycache__/
 .venv/
 venv/
 env/
-uv.lock
-.python-version
+*uv.lock
+*.python-version
 
 # Distribución / empaquetado
 dist/
@@ -98,7 +98,7 @@ $RECYCLE.BIN/
 # ══════════════════════════════════════════════════════════════════════════════
 # VS Code (ignorar configuración local de usuario, conservar settings del proyecto)
 .vscode/*.log
-.codegraph
+.codegraph/
 
 # JetBrains
 .idea/

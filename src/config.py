@@ -109,12 +109,14 @@ class ErdosConfig:
         num_nodes: Número de nodos.
         edge_prob: Probabilidad de cada arista.
         directed: Si True genera DiGraph.
+        layer: Capa asignada a todas las aristas.
     """
 
     type: Literal["erdos"] = field(default="erdos", init=False)
     num_nodes: int = 10_000
     edge_prob: float = 0.25
     directed: bool = False
+    layer: Literal["analog", "digital"] = "analog"
 
 
 @dataclass
@@ -128,6 +130,7 @@ class ScaleFreeConfig:
         gamma: Prob. de añadir arista hacia nodo nuevo.
         delta_in: Sesgo de preferencia de entrada.
         delta_out: Sesgo de preferencia de salida.
+        layer: Capa asignada a todas las aristas (default digital, acorde a su naturaleza dirigida).
     """
 
     type: Literal["scale_free"] = field(default="scale_free", init=False)
@@ -137,6 +140,7 @@ class ScaleFreeConfig:
     gamma: float = 0.05
     delta_in: float = 0.2
     delta_out: float = 0.0
+    layer: Literal["analog", "digital"] = "digital"
 
 
 @dataclass
@@ -148,6 +152,7 @@ class WattsConfig:
         k: Cada nodo conectado a sus k vecinos más cercanos.
         rewire_prob: Probabilidad de reconectar cada arista.
         directed: Si True aplica orientación proporcional al grado.
+        layer: Capa asignada a todas las aristas.
     """
 
     type: Literal["watts"] = field(default="watts", init=False)
@@ -155,6 +160,7 @@ class WattsConfig:
     k: int = 6
     rewire_prob: float = 0.1
     directed: bool = False
+    layer: Literal["analog", "digital"] = "analog"
 
 
 @dataclass
@@ -165,12 +171,14 @@ class SNAPConfig:
         dataset_name: Clave del catálogo SNAP (p.ej. "ego-Facebook").
         cache_dir: Carpeta local donde se cachea el dataset.
         directed: Si True fuerza grafo dirigido (convirtiendo si es necesario).
+        layer: Capa asignada a todas las aristas.
     """
 
     type: Literal["snap"] = field(default="snap", init=False)
     dataset_name: str = "ego-Facebook"
     cache_dir: str = "./data/snap"
     directed: bool = False
+    layer: Literal["analog", "digital"] = "digital"
 
 
 @dataclass

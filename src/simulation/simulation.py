@@ -44,6 +44,7 @@ from src.graphs import (
     SNAPGraph,
     WattsStrogatzGraph,
 )
+from src.messages import Layer
 from src.simulation.datacollector import DataCollector
 from src.simulation.model import NetworkModel
 
@@ -211,7 +212,9 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
         ValueError: Si el tipo de configuración no es reconocido.
     """
     if isinstance(g, ErdosConfig):
-        return ErdosRenyiGraph(num_nodes=g.num_nodes, edge_prob=g.edge_prob, seed=seed)
+        return ErdosRenyiGraph(
+            num_nodes=g.num_nodes, edge_prob=g.edge_prob, seed=seed, layer=Layer(g.layer)
+        )
     if isinstance(g, ScaleFreeConfig):
         return ScaleFreeGraph(
             num_nodes=g.num_nodes,
@@ -221,11 +224,16 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
             delta_in=g.delta_in,
             delta_out=g.delta_out,
             seed=seed,
+            layer=Layer(g.layer),
         )
     if isinstance(g, WattsConfig):
-        return WattsStrogatzGraph(num_nodes=g.num_nodes, k=g.k, rewire_prob=g.rewire_prob, seed=seed)
+        return WattsStrogatzGraph(
+            num_nodes=g.num_nodes, k=g.k, rewire_prob=g.rewire_prob, seed=seed, layer=Layer(g.layer)
+        )
     if isinstance(g, SNAPConfig):
-        return SNAPGraph(dataset_name=g.dataset_name, cache_dir=g.cache_dir, directed=g.directed, seed=seed)
+        return SNAPGraph(
+            dataset_name=g.dataset_name, cache_dir=g.cache_dir, directed=g.directed, seed=seed, layer=Layer(g.layer)
+        )
     if isinstance(g, MultiLayerConfig):
         digital: BaseGraph
         if isinstance(g.digital, SNAPConfig):

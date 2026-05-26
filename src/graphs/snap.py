@@ -42,6 +42,7 @@ import networkx as nx
 import random
 
 from src.graphs.base import BaseGraph
+from src.messages import Layer
 
 
 @dataclass(frozen=True)
@@ -416,23 +417,26 @@ class SNAPGraph(BaseGraph):
         cache_dir: str | Path = "./data/snap",
         directed: bool | None = None,
         seed: int | None = None,
+        layer: Layer = Layer.ANALOG,
     ) -> None:
         """Inicializa el adaptador SNAP.
 
         Args:
             dataset_name: Clave del dataset en `SNAP_CATALOG`.
             cache_dir: Carpeta donde se cacheará el dataset.
-            seed: Semilla (no usada, presente por consistencia de firma).
+            directed: Si True/False fuerza el tipo de grafo. None = natural del catálogo.
+            seed: Semilla (no usada en la topología, sí en la anotación de trust).
+            layer: Capa asignada a todas las aristas.
         """
-        super().__init__(seed=seed)
+        super().__init__(seed=seed, layer=layer)
         self.dataset_name = dataset_name
         self.cache_dir = cache_dir
         self.directed = directed
         # Composición: delega toda la lógica de descarga al downloader.
         self.downloader = SNAPDownloader(cache_dir=cache_dir, verbose=True)
 
-    def build(self) -> nx.Graph:
-        """Construye el grafo cargando el dataset SNAP.
+    def _build_topology(self) -> nx.Graph:
+        """Construye la topología SNAP desnuda.
 
         Returns:
             Grafo `nx.Graph` o `nx.DiGraph` correspondiente al dataset.
