@@ -75,6 +75,7 @@ class AgentConfig:
 
     type: Literal["stochastic", "bayesian"] = "stochastic"
     fire_probability: float = 0.20
+    trace_continue_probability: float = 0.50
     brain: BrainConfig = field(default_factory=BrainConfig)
 
 
@@ -91,7 +92,7 @@ class OutputConfig:
     """
 
     basename: str = "simulation"
-    export_format: Literal["csv", "json", "none"] = "csv"
+    export_format: Literal["csv", "json", "none"] = "json"
     save_graph: bool = True
     render_plots: bool = True
     render_gif: bool = False

@@ -105,15 +105,19 @@ class NetworkModel(mesa.Model):  # type: ignore
         salience: float = 0.5,
         modalities: frozenset[Modality] | None = None,
         parent_message_id: int | None = None,
+        trace_id: int | None = None,
     ) -> Message:
         """Crea un Message con message_id y timestep asignados automáticamente.
 
         En la capa analógica las modalidades se fuerzan a ``{AUDIO}``
         (interacción cara a cara) independientemente de lo que pase el caller.
+        Si ``trace_id`` se proporciona, el mensaje se encadena a esa traza
+        existente; si no, se reserva un trace_id nuevo.
         """
         mid = self._next_message_id
         self._next_message_id += 1
-        trace_id = self.data_collector.new_trace_id()
+        if trace_id is None:
+            trace_id = self.data_collector.new_trace_id()
         if layer is Layer.ANALOG:
             final_modalities: frozenset[Modality] = frozenset({Modality.AUDIO})
         elif modalities is not None:
@@ -164,17 +168,26 @@ class NetworkModel(mesa.Model):  # type: ignore
         return msgs
 
     def trust(self, source: int, target: int, layer: Layer) -> float:
-        """Devuelve la confianza de la arista source→target en la capa dada."""
-        for data in self.graph.get_edge_data(source, target, default={}).values():
+        """Devuelve la confianza entre source y target en la capa dada.
+
+        La arista en el grafo es target→source (target sigue a source),
+        así que se busca en esa dirección.
+        """
+        for data in self.graph.get_edge_data(target, source, default={}).values():
             if data.get("layer") == layer:
                 return float(data.get("trust", 0.5))
         return 0.5
 
     def neighbors_trust(self, node_id: int) -> dict[tuple[int, Layer], float]:
-        """Devuelve {(vecino, capa): trust} para todos los vecinos salientes."""
+        """Devuelve {(seguidor, capa): trust} para todos los seguidores del nodo.
+
+        Los seguidores son los predecesores en el grafo (pred→node_id).
+        Confía en el invariante de ``_annotate``: cada par (u, v) tiene como
+        máximo una arista por capa, así que el bucle interno es de ≤1 iteración.
+        """
         result: dict[tuple[int, Layer], float] = {}
-        for nbr in self.graph.successors(node_id):
-            for data in self.graph.get_edge_data(node_id, nbr, default={}).values():
+        for nbr in self.graph.predecessors(node_id):
+            for data in self.graph.get_edge_data(nbr, node_id, default={}).values():
                 lyr = data.get("layer", Layer.ANALOG)
                 result[(nbr, lyr)] = float(data.get("trust", 0.5))
         return result

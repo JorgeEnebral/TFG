@@ -15,6 +15,7 @@ dependencies = [
     "pylint>=4.0.5",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
+    "tqdm>=4.67.3",
 ]
 
 # ── Ruff: linter y formatter ───────────────────────────────────────────────────

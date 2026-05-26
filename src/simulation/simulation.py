@@ -28,11 +28,12 @@ import src.config as cfg
 from src.agents import BayesianAgent, EmotionalBrain, StochasticAgent
 from src.agents.brain import BrainHyperparams
 from src.config import (
-    BrainConfig,
+    AgentConfig,
     ErdosConfig,
     GraphConfig,
     MultiLayerConfig,
     ScaleFreeConfig,
+    SimulationConfig,
     SNAPConfig,
     WattsConfig,
 )
@@ -57,34 +58,29 @@ class Simulation:
     def __init__(
         self,
         graph: BaseGraph,
-        agent_type: Literal["stochastic", "bayesian"] = "stochastic",
-        fire_probability: float = 0.20,
-        sim_time: int = 40,
-        seed: int = 42,
+        agent: AgentConfig,
+        sim: SimulationConfig,
         out_dir: str | Path = DATA_DIR,
-        brain_config: BrainConfig | None = None,
     ) -> None:
         """Inicializa la simulación creando el modelo y el recolector.
 
         Args:
             graph: Topología de red ya construida (o lazy).
-            agent_type: Tipo de agente a instanciar ("stochastic" o "bayesian").
-            fire_probability: Probabilidad de disparo por paso (solo stochastic).
-            sim_time: Número total de pasos a simular.
-            seed: Semilla del RNG compartido.
+            agent: Configuración del tipo y comportamiento de los agentes.
+            sim: Parámetros temporales y de semilla de la simulación.
             out_dir: Directorio raíz de salida (se crean subdirectorios ``sim/`` y ``graph/``).
         """
         self.graph = graph
-        self.fire_probability = fire_probability
-        self.sim_time = sim_time
-        self.seed = seed
+        self.sim_time = sim.days * sim.steps_per_day
+        self.seed = sim.seed
         self.out_dir = Path(out_dir)
         self.sim_dir = self.out_dir / "sim"
         self.graph_dir = self.out_dir / "graph"
         self.sim_dir.mkdir(parents=True, exist_ok=True)
+        self.graph_dir.mkdir(parents=True, exist_ok=True)
 
-        if agent_type == "bayesian":
-            bc = brain_config if brain_config is not None else BrainConfig()
+        if agent.type == "bayesian":
+            bc = agent.brain
             hp = BrainHyperparams(
                 p_create_analog=bc.p_create_analog,
                 p_create_digital_base=bc.p_create_digital_base,
@@ -100,12 +96,17 @@ class Simulation:
             )
 
             def agent_factory(model: NetworkModel, node_id: int) -> BayesianAgent:
-                brain_seed = (self.seed * 1_000_003) ^ node_id
+                brain_seed = self.seed + node_id
                 brain = EmotionalBrain(hp=hp, seed=brain_seed)
                 return BayesianAgent(model=model, node_id=node_id, brain=brain)
         else:
             def agent_factory(model: NetworkModel, node_id: int) -> StochasticAgent:  # type: ignore[misc]
-                return StochasticAgent(model=model, node_id=node_id, fire_probability=self.fire_probability)
+                return StochasticAgent(
+                    model=model,
+                    node_id=node_id,
+                    fire_probability=agent.fire_probability,
+                    trace_continue_probability=agent.trace_continue_probability,
+                )
 
         self.collector = DataCollector()
         self.model = NetworkModel(
@@ -117,7 +118,9 @@ class Simulation:
 
     def run(self) -> None:
         """Ejecuta la simulación (siempre headless)."""
-        for _ in range(self.sim_time):
+        from tqdm import tqdm
+
+        for _ in tqdm(range(self.sim_time), desc="Simulando", unit="paso"):
             self.model.step()
 
     def save_graph_structure(self) -> Path:
@@ -129,7 +132,7 @@ class Simulation:
         path = self.sim_dir / "graph.json"
         data = nx.node_link_data(self.model.graph)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f)
+            json.dump(data, f, default=lambda o: o.value if hasattr(o, "value") else str(o))
         return path
 
     def export_data(
@@ -162,11 +165,13 @@ class Simulation:
         Returns:
             Directorio donde se guardaron los ficheros.
         """
-        from src.visualization.plots import analyse_graph  # lazy: evita import circular
+        from src.visualization.plots import analyse_graph, analyse_multilayer  # lazy: evita import circular
         from src.visualization.visualizer import MessageHeatmap  # lazy: ídem
 
-        self.graph_dir.mkdir(parents=True, exist_ok=True)
-        analyse_graph(self.model.graph, basename, out_dir=self.graph_dir, seed=self.seed)
+        if isinstance(self.graph, MultiLayerGraph):
+            analyse_multilayer(self.model.graph, basename, out_dir=self.graph_dir, seed=self.seed)
+        else:
+            analyse_graph(self.model.graph, basename, out_dir=self.graph_dir, seed=self.seed)
         heatmap_path = self.graph_dir / f"{basename}_heatmap.png"
         MessageHeatmap(self.collector, num_nodes=len(self.graph)).render(heatmap_path)
         print(f"[OK] Análisis grafo -> {self.graph_dir}")
@@ -242,6 +247,7 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
                 cache_dir=g.digital.cache_dir,
                 directed=True,
                 seed=seed,
+                layer=Layer.DIGITAL,
             )
             n = len(digital)
         else:
@@ -253,6 +259,7 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
                 delta_in=g.digital.delta_in,
                 delta_out=g.digital.delta_out,
                 seed=seed,
+                layer=Layer.DIGITAL,
             )
             n = g.digital.num_nodes
         analog = WattsStrogatzGraph(
@@ -260,6 +267,7 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
             k=g.analog.k,
             rewire_prob=g.analog.rewire_prob,
             seed=seed,
+            layer=Layer.ANALOG,
         )
         return MultiLayerGraph(digital_graph=digital, analog_graph=analog, seed=seed)
     raise ValueError(f"Tipo de grafo desconocido: {g!r}")
@@ -267,25 +275,27 @@ def build_graph(g: GraphConfig, seed: int) -> BaseGraph:
 
 def main() -> None:
     """Punto de entrada principal: lee config, construye y ejecuta la simulación."""
-    seed = cfg.SIMULATION.seed
-    sim_time = cfg.SIMULATION.days * cfg.SIMULATION.steps_per_day
+    graph = build_graph(cfg.GRAPH, seed=cfg.SIMULATION.seed)
 
-    graph = build_graph(cfg.GRAPH, seed=seed)
-
-    folder = f"{cfg.GRAPH.type}-{cfg.AGENT.type}"
+    folder = f"{cfg.GRAPH.type}"
     if isinstance(cfg.GRAPH, SNAPConfig):
         folder += f"-{cfg.GRAPH.dataset_name}"
+    elif isinstance(cfg.GRAPH, MultiLayerConfig):
+        digital_tag = (
+            f"snap-{cfg.GRAPH.digital.dataset_name}"
+            if isinstance(cfg.GRAPH.digital, SNAPConfig)
+            else "scale_free"
+        )
+        folder += f"-{digital_tag}"
+    folder += f"-{cfg.AGENT.type}"
 
     out_dir = DATA_DIR / "results" / folder
 
     sim = Simulation(
         graph=graph,
-        agent_type=cfg.AGENT.type,
-        fire_probability=cfg.AGENT.fire_probability,
-        sim_time=sim_time,
-        seed=seed,
+        agent=cfg.AGENT,
+        sim=cfg.SIMULATION,
         out_dir=out_dir,
-        brain_config=cfg.AGENT.brain,
     )
 
     sim.run()
