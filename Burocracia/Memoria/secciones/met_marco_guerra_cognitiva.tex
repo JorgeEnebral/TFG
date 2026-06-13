@@ -1,0 +1,76 @@
+La guerra cognitiva no es una disciplina nueva, pero su formalización operativa como objeto de modelado computacional sí lo es.
+El presente trabajo parte de la caracterización de \emph{Rushing, Hersch y Xu} \cite{RushingHerschXu2026}, que articulan la guerra cognitiva como una campaña sistémica para alterar la percepción, la creencia y, en última instancia, la decisión de una población objetivo.
+En este marco, el campo de batalla no es territorial sino mental: lo que se disputa es la \emph{superioridad cognitiva}, entendida por la OTAN como la capacidad de un actor para percibir, comprender y actuar sobre el entorno con mayor eficacia que sus adversarios \cite{NATOChiefScientist2025}.
+Trasladar esta definición a un simulador multiagente requiere responder una pregunta de diseño previa: ¿cuál es la unidad mínima de análisis?
+La respuesta que adopta este modelo es inequívoca: \emph{el mensaje es la munición; el blanco, la mente} \cite{Hoffman2025}.
+Una operación cognitiva es, en esencia, un flujo de mensajes que altera estados cognitivos; por tanto, el objeto central del modelo no es el agente sino el mensaje que circula entre agentes.
+Esta elección conecta directamente con la noción de superioridad cognitiva: ganar la guerra de la información implica controlar qué mensajes llegan, con qué carga emocional y en qué momento.
+
+El mecanismo que gobierna la conducta de cada agente sigue el bucle \emph{Observe–Orient–Decide–Act} (OODA) en su variante multi-horizonte \cite{RushingHerschXu2026}.
+La variante multi-horizonte distingue dos escalas temporales de operación de la guerra cognitiva con implicaciones cualitativamente distintas.
+
+El \textbf{horizonte corto plazo} abarca horas o días: corresponde a la fase aguda de una campaña informativa, en la que la narrativa se difunde rápidamente aprovechando la viralizad de los \emph{hubs} y el contagio emocional antes de que los mecanismos de verificación y contra-narrativa puedan activarse. En este horizonte dominan la velocidad de penetración ($t_{50}$), el alcance máximo y la amplitud del pico de nuevas conversiones. Los ataques de corto plazo buscan crear hechos consumados: fijar una versión inicial de los eventos que resulte difícil de desalojar una vez instalada.
+
+El \textbf{horizonte largo plazo} abarca semanas, meses o años: corresponde al proceso de consolidación de la narrativa en las estructuras cognitivas de la población y en la arquitectura de la red. En este horizonte dominan la tasa de ataque final $a$, la resiliencia poblacional $R = 1 - a$ y la entropía cognitiva $H$, que miden en qué medida la narrativa ha erosionado la diversidad de creencias de forma duradera.
+
+El experimento de este trabajo opera exclusivamente en el \textbf{horizonte largo plazo}: la simulación corre durante $45$ pasos equivalentes a tres días de actividad a $15$ pasos/día, tiempo suficiente para que la dinámica de cascada se estabilice y las métricas de resiliencia converjan. La evaluación del horizonte corto plazo ---optimización de la velocidad de penetración y el diseño de ventanas de respuesta--- queda como línea de trabajo futuro.
+
+En cada paso de simulación el agente: (i)~\emph{observa} los mensajes acumulados en su bandeja de entrada (\emph{inbox}); (ii)~\emph{se orienta} actualizando su estado interno —convicción escalar o vector cognitivo según el tipo de agente—; (iii)~\emph{decide} si emite un mensaje nuevo o reenvía alguno de los recibidos; y (iv)~\emph{actúa} depositando el mensaje resultante en su buzón de salida (\emph{outbox}).
+Para garantizar determinismo y eliminar condiciones de carrera, el simulador divide cada paso en dos sub-fases secuenciales: \textbf{TX} (todos los agentes ejecutan Decide+Act y pueblan sus \emph{outboxes}) y \textbf{RX} (los mensajes se entregan a los \emph{inboxes} de los destinatarios y se registran en las trazas).
+Esta separación asegura que ningún agente procesa en el mismo paso un mensaje que otro agente acaba de generar, reproduciendo la latencia real de cualquier canal de comunicación.
+La figura~\ref{fig:ooda} ilustra la correspondencia entre el bucle OODA y las sub-fases TX/RX del simulador.
+
+\begin{figure}[h!]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm} PENDIENTE (figura a generar): diagrama circular del bucle OODA (Observe, Orient, Decide, Act) con anotación de las sub-fases TX y RX del simulador sobre las flechas Decide$\to$Act y Act$\to$Observe respectivamente\vspace{1.5cm}}}
+\caption{Bucle OODA y su mapeo a las sub-fases TX/RX del simulador. En TX los agentes deciden y emiten; en RX los mensajes se entregan y se registran.}
+\label{fig:ooda}
+\end{figure}
+
+El objeto central del modelo es el mensaje, formalizado como una tupla inmutable de doce campos:
+
+\begin{equation}
+m = (id,\, trace,\, t,\, src,\, tgt,\, \ell,\, M_{od},\, e,\, \lambda,\, v,\, s,\, parent)
+\label{eq:mensaje}
+\end{equation}
+
+La tabla~\ref{tab:mensaje} detalla el dominio y el papel de cada variable.
+La \emph{capa} $\ell \in \{\text{analógica},\,\text{digital}\}$ determina la función de confianza aplicable y la modalidad por defecto: la capa analógica impone audio y presencia física (cara a cara), mientras que la digital admite cualquier modalidad.
+La \emph{modalidad} $M_{od} \subseteq \{\text{texto},\,\text{audio},\,\text{imagen},\,\text{vídeo}\}$ modula la ganancia de impacto en el agente cognitivo: el vídeo tiene el mayor bonus, seguido de audio, imagen y texto, en coherencia con la literatura sobre persuasión multimodal.
+La \emph{emoción dominante} $e$ se toma del conjunto de las ocho emociones primarias de Plutchik más la etiqueta neutra \cite{Plutchik1980}; su presencia en el mensaje abre la puerta a modelar contagio emocional sin necesidad de una psicología del agente más elaborada.
+La \emph{carga emocional} $\lambda \in [0,1]$ cuantifica la intensidad de esa emoción y constituye, para el agente resistente, el único driver de persuasión: un mensaje puede ser falso y aun así persuadir si su carga emocional es elevada.
+La \emph{veracidad percibida} $v \in [0,1]$ no modula directamente la persuasión —el modelo no asume que los agentes evalúan la verdad— sino que etiqueta el mensaje como \emph{narrativa} (desinformación) cuando $v \leq v_{thr}$, distinguiéndolo del ruido neutro.
+Esta elección está respaldada por la evidencia empírica de que las noticias falsas se difunden significativamente más rápido y más lejos que las verdaderas \cite{Vosoughi2018}.
+La \emph{saliencia} $s \in [0,1]$ captura la relevancia subjetiva que el receptor atribuye a la fuente; es el mecanismo por el que las fuentes de autoridad percibida ejercen mayor influencia.
+Por último, los campos $trace$ y $parent$ implementan la trazabilidad causal: $trace$ agrupa todos los mensajes de una misma campaña y $parent$ apunta al mensaje del que este es reenvío directo, permitiendo reconstruir el árbol de difusión completo para análisis \emph{post hoc}.
+
+\begin{table}[h!]
+\centering
+\caption{Variables del mensaje $m$ (ecuación~\ref{eq:mensaje}): símbolo, dominio y papel en el modelo.}
+\label{tab:mensaje}
+\begin{tabular}{@{}l p{4.2cm} p{8cm}@{}}
+\toprule
+\textbf{Símbolo} & \textbf{Dominio} & \textbf{Papel en el modelo} \\
+\midrule
+$id$       & UUID                                        & Identificador único del mensaje \\
+$trace$    & UUID                                        & Identificador de campaña; agrupa mensajes relacionados \\
+$t$        & $\mathbb{N}$                                & Paso de simulación en que se emite \\
+$src$      & $V$ (nodo del grafo)                        & Agente emisor \\
+$tgt$      & $V$ (nodo del grafo)                        & Agente receptor \\
+$\ell$     & \{analógica, digital\}                      & Capa; determina función de confianza y modalidad por defecto \\
+$M_{od}$   & $\mathcal{P}$(\{texto, audio, imagen, vídeo\}) & Modalidad/canal; modula ganancia de impacto cognitivo \\
+$e$        & Emociones Plutchik $\cup$ \{neutro\}        & Emoción dominante del mensaje \cite{Plutchik1980} \\
+$\lambda$  & $[0,1]$                                     & Carga emocional; driver de persuasión en agente resistente \\
+$v$        & $[0,1]$                                     & Veracidad percibida; etiqueta narrativa si $v \leq v_{thr}$ \\
+$s$        & $[0,1]$                                     & Saliencia; relevancia subjetiva atribuida al emisor \\
+$parent$   & UUID $\cup$ \{\texttt{None}\}               & Referencia al mensaje origen (trazabilidad causal) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La dinámica emergente del modelo nace de la coexistencia de dos \emph{especies} de mensajes con propiedades opuestas.
+La \emph{narrativa} se caracteriza por veracidad percibida baja ($v \leq v_{thr}$) y carga emocional alta ($\lambda \approx 1$): es el vector de desinformación que persuade precisamente porque apela a la emoción y no a la evidencia.
+El \emph{ruido neutro}, en cambio, presenta veracidad alta y emoción neutra: no persuade, pero mantiene activo el canal de comunicación para que la narrativa no circule en el vacío.
+Su competencia sobre la misma red genera patrones de difusión no lineales que la simulación permite observar y medir.
+La métrica que captura el efecto agregado de esta competencia es la \emph{entropía cognitiva} definida en el marco del \emph{Cognitive Net Assessment} \cite{PolytechniqueCNA2026}: una población con creencias distribuidas de forma más uniforme —mayor entropía— es más vulnerable a la narrativa, porque ninguna creencia dominante actúa como ancla colectiva.
+Esta métrica operacionalizará el concepto de superioridad cognitiva en la fase de análisis de resultados, cerrando el ciclo entre el marco teórico y el diseño computacional del simulador.

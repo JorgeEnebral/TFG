@@ -30,6 +30,11 @@ class _DarkStyle:
     NODE_FIRE = "#ffd166"
     NODE_RECV = "#06d6a0"
     NODE_IDLE = "#4a90e2"
+    # Escenario resistente
+    NODE_ADOPTED = "#ef476f"   # rojo: ha adoptado la narrativa
+    NODE_CLEAN = "#06d6a0"     # verde: no adoptado
+    EDGE_NARRATIVE = "#ff4d4d"  # flecha roja: mensaje de narrativa
+    EDGE_NOISE = "#6b7280"      # flecha gris: ruido neutro
     TEXT = "white"
     SUBTEXT = "#a0a8b8"
 
@@ -50,38 +55,64 @@ class PostSimAnimator:
         self,
         graph_path: Path | str,
         messages_path: Path | str,
+        adoptions_path: Path | str | None = None,
+        agent_states_path: Path | str | None = None,
+        narrative_veracity_threshold: float = 0.30,
     ) -> None:
-        """Carga el grafo y los mensajes desde fichero.
+        """Carga el grafo, los mensajes y (opcional) el estado de adopción.
 
         Args:
             graph_path: Ruta al JSON en formato node-link (guardado por ``Simulation``).
             messages_path: Ruta al CSV o JSON de mensajes (guardado por ``DataCollector``).
+            adoptions_path: CSV de adopciones (``node, timestep, ...``). Si se
+                da, los nodos se colorean por adopción acumulada.
+            agent_states_path: CSV de estados finales (``node, is_seed, ...``);
+                las semillas se marcan adoptadas desde t=0.
+            narrative_veracity_threshold: Veracidad máxima para pintar un
+                mensaje como narrativa (flecha roja) en vez de ruido (gris).
         """
         graph_path = Path(graph_path)
         messages_path = Path(messages_path)
+        self.narrative_veracity_threshold = narrative_veracity_threshold
 
         with open(graph_path, encoding="utf-8") as f:
             data = json.load(f)
         self.graph: nx.Graph = nx.node_link_graph(data)
 
-        messages_by_step: dict[int, list[tuple[int, int]]] = defaultdict(list)
+        # Cada mensaje: (source, target, is_narrative).
+        messages_by_step: dict[int, list[tuple[int, int, bool]]] = defaultdict(list)
         if messages_path.suffix == ".csv":
             with open(messages_path, encoding="utf-8", newline="") as f:
                 for row in csv.DictReader(f):
+                    is_narr = float(row["veracity"]) <= narrative_veracity_threshold
                     messages_by_step[int(row["timestep"])].append(
-                        (int(row["source_node"]), int(row["target_node"]))
+                        (int(row["source_node"]), int(row["target_node"]), is_narr)
                     )
         else:
             with open(messages_path, encoding="utf-8") as f:
                 for rec in json.load(f):
+                    is_narr = float(rec["veracity"]) <= narrative_veracity_threshold
                     messages_by_step[int(rec["timestep"])].append(
-                        (int(rec["source_node"]), int(rec["target_node"]))
+                        (int(rec["source_node"]), int(rec["target_node"]), is_narr)
                     )
 
-        self.messages_by_step: dict[int, list[tuple[int, int]]] = dict(messages_by_step)
+        self.messages_by_step: dict[int, list[tuple[int, int, bool]]] = dict(messages_by_step)
         self.total_steps: int = (
             max(self.messages_by_step.keys()) + 1 if self.messages_by_step else 0
         )
+
+        # Paso de adopción por nodo (para colorear rojo/verde acumulativo).
+        self.adopted_at: dict[int, int] = {}
+        if agent_states_path is not None:
+            with open(Path(agent_states_path), encoding="utf-8", newline="") as f:
+                for row in csv.DictReader(f):
+                    if row.get("is_seed", "").strip().lower() == "true":
+                        self.adopted_at[int(row["node"])] = 0
+        if adoptions_path is not None:
+            with open(Path(adoptions_path), encoding="utf-8", newline="") as f:
+                for row in csv.DictReader(f):
+                    self.adopted_at[int(row["node"])] = int(row["timestep"])
+        self.has_adoption: bool = bool(self.adopted_at) or agent_states_path is not None
 
     def save_gif(
         self,
@@ -111,6 +142,22 @@ class PostSimAnimator:
         fig.patch.set_facecolor(_DarkStyle.BG)
         ax.set_facecolor(_DarkStyle.BG)
 
+        def _draw_edge_set(edges: list[tuple[int, int]], color: str) -> None:
+            if not edges:
+                return
+            dg = nx.DiGraph()
+            dg.add_nodes_from(g.nodes())
+            dg.add_edges_from(edges)
+            nx.draw_networkx_edges(
+                dg, pos, ax=ax,
+                edgelist=list(dg.edges()),
+                edge_color=color,
+                width=3.0, alpha=0.95,
+                arrows=True, arrowsize=22, arrowstyle="-|>",
+                connectionstyle="arc3,rad=0.12",
+                node_size=700,
+            )
+
         def _draw(frame: int) -> tuple[Axes]:
             ax.clear()
             ax.set_facecolor(_DarkStyle.BG)
@@ -120,33 +167,40 @@ class PostSimAnimator:
             )
 
             active = self.messages_by_step.get(frame, [])
-            if active:
-                dg = nx.DiGraph()
-                dg.add_nodes_from(g.nodes())
-                dg.add_edges_from(active)
-                nx.draw_networkx_edges(
-                    dg, pos, ax=ax,
-                    edgelist=list(dg.edges()),
-                    edge_color=_DarkStyle.EDGE_ACTIVE,
-                    width=3.0, alpha=0.95,
-                    arrows=True, arrowsize=22, arrowstyle="-|>",
-                    connectionstyle="arc3,rad=0.12",
-                    node_size=700,
-                )
 
-            firing = {s for s, _ in active}
-            receiving = {t for _, t in active}
-            node_colors, node_sizes = [], []
-            for n in g.nodes():
-                if n in firing:
-                    node_colors.append(_DarkStyle.NODE_FIRE)
-                    node_sizes.append(100)
-                elif n in receiving:
-                    node_colors.append(_DarkStyle.NODE_RECV)
-                    node_sizes.append(75)
-                else:
-                    node_colors.append(_DarkStyle.NODE_IDLE)
-                    node_sizes.append(50)
+            if self.has_adoption:
+                # Flechas rojas para narrativa, grises para ruido.
+                _draw_edge_set([(s, t) for s, t, n in active if n], _DarkStyle.EDGE_NARRATIVE)
+                _draw_edge_set([(s, t) for s, t, n in active if not n], _DarkStyle.EDGE_NOISE)
+
+                # Nodos: rojo si han adoptado hasta este frame, verde si no.
+                node_colors, node_sizes = [], []
+                for node in g.nodes():
+                    ta = self.adopted_at.get(node)
+                    if ta is not None and ta <= frame:
+                        node_colors.append(_DarkStyle.NODE_ADOPTED)
+                        node_sizes.append(90)
+                    else:
+                        node_colors.append(_DarkStyle.NODE_CLEAN)
+                        node_sizes.append(55)
+                legend = ("● rojo: adoptado    ● verde: no adoptado    "
+                          "→ rojo: narrativa    → gris: ruido")
+            else:
+                _draw_edge_set([(s, t) for s, t, _ in active], _DarkStyle.EDGE_ACTIVE)
+                firing = {s for s, _, _ in active}
+                receiving = {t for _, t, _ in active}
+                node_colors, node_sizes = [], []
+                for node in g.nodes():
+                    if node in firing:
+                        node_colors.append(_DarkStyle.NODE_FIRE)
+                        node_sizes.append(100)
+                    elif node in receiving:
+                        node_colors.append(_DarkStyle.NODE_RECV)
+                        node_sizes.append(75)
+                    else:
+                        node_colors.append(_DarkStyle.NODE_IDLE)
+                        node_sizes.append(50)
+                legend = "● amarillo: dispara    ● verde: recibe    ● azul: reposo"
 
             nx.draw_networkx_nodes(
                 g, pos, ax=ax,
@@ -158,8 +212,7 @@ class PostSimAnimator:
                 color=_DarkStyle.TEXT, fontsize=13, pad=14,
             )
             ax.text(
-                0.5, -0.04,
-                "● amarillo: dispara    ● verde: recibe    ● azul: reposo",
+                0.5, -0.04, legend,
                 transform=ax.transAxes, ha="center", va="top",
                 color=_DarkStyle.SUBTEXT, fontsize=10,
             )

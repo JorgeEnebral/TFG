@@ -1,5 +1,5 @@
 # Declare all phony targets
-.PHONY: install format lint fix-pylint clean test all
+.PHONY: install format lint fix-pylint clean test all memoria
 
 # Default target
 .DEFAULT_GOAL := all
@@ -68,6 +68,6 @@ all: install format lint test clean
 # Removes .venv
 remove_venv: clean
 	@echo "Removing virtual environment..."
-	@rm -rf .venv
+	-@rm -rf .venv
 	@echo "Virtual environment removed! ✅"
 	@echo "Run 'make install' to recreate it."

@@ -167,6 +167,21 @@ class NetworkModel(mesa.Model):  # type: ignore
         self._inboxes[node_id] = []
         return msgs
 
+    def seed_messages(self, messages: list[Message]) -> None:
+        """Inyecta mensajes externos: los registra y entrega a los inboxes.
+
+        Replica la sub-fase RX para una inyección puntual (p.ej. la
+        narrativa-semilla en t=0) sin pasar por la sub-fase TX de los
+        agentes. No altera ``step()``.
+
+        Args:
+            messages: Mensajes ya construidos a entregar.
+        """
+        for msg in messages:
+            self._inboxes[msg.target].append(msg)
+            self.data_collector.record_message(msg)
+        self.active_messages = list(messages)
+
     def trust(self, source: int, target: int, layer: Layer) -> float:
         """Devuelve la confianza entre source y target en la capa dada.
 

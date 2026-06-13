@@ -22,45 +22,57 @@ class SimulationConfig:
         interval_ms: Milisegundos entre frames en la animación.
     """
 
-    days: int = 60
-    steps_per_day: int = 24
+    days: int = 3
+    steps_per_day: int = 15
     seed: int = 42
     interval_ms: int = 500
 
 
 @dataclass
-class BrainConfig:
-    """Hiperparámetros del ``EmotionalBrain`` (ver agente_inteligente.md).
+class NarrativeConfig:
+    """Parámetros de la narrativa-operación inyectada (solo ``resistant``).
 
-    Todos los defaults provienen de literatura empírica. Edita aquí para
-    barrer experimentos. ``None`` en cualquier campo significa "usa el
-    default del propio ``BrainHyperparams``".
+    Modela la adopción por umbral (Linear Threshold) y la inyección de
+    semilla. Ver ``AI_plans/resistencia_cognitiva.md``.
+
+    El umbral de resistencia θ se muestrea de una mezcla **bimodal**: dos
+    subpoblaciones (susceptibles de θ bajo y resistentes de θ alto), más
+    realista que una unimodal (Granovetter 1978; Watts 2002).
 
     Attributes:
-        p_create_analog: HY-1. Prob. horaria de emitir mensaje analógico.
-        p_create_digital_base: HY-2. Prob. base digital antes del escalado.
-        k_follower: HY-2. Denominador del término log(1+followers).
-        theta_send: HY-7. Umbral vectorial de emisión.
-        forward_base: HY-8. Probabilidad base de reenvío.
-        forward_boost_anger: HY-8. Bonus a p_forward por dim anger.
-        forward_boost_surprise: HY-8. Bonus a p_forward por dim surprise.
-        attention_capacity: HY-10. Mensajes/step antes de atenuar atención.
-        self_confidence_floor: HY-11. Piso de la escala (0.5 ⇒ rango 0.5×–1.5×).
-        genetics_mu: HY-5. Media de la TruncNormal de genética.
-        genetics_sigma: HY-5. Desviación típica.
+        enabled: Si se inyecta la narrativa al inicio de la simulación.
+        k_seeds: Número de nodos semilla que lanzan la narrativa en t=0.
+        seed_strategy: ``"hubs"`` (mayor nº de seguidores) o ``"random"``.
+        seed_fanout: Fracción de seguidores a los que cada semilla envía en
+            t=0 (un subconjunto, no toda la audiencia de golpe).
+        veracity: Veracidad de la narrativa (baja = desinfo). Debe ser
+            <= ``narrative_veracity_threshold`` para que cuente. Es solo
+            la etiqueta de la campaña; no modula la persuasión.
+        narrative_veracity_threshold: Umbral de veracidad para clasificar
+            un mensaje como narrativa.
+        emotional_load: Carga emocional de la narrativa en [0, 1]. Es el
+            único driver de persuasión que aporta el mensaje.
+        gamma: Ganancia de persuasión por exposición en [0, 1].
+        susceptible_fraction: Fracción de agentes en el modo susceptible.
+        theta_susceptible_mu: Media de θ de los susceptibles.
+        theta_resistant_mu: Media de θ de los resistentes.
+        theta_sigma: Desviación típica de cada modo.
+        forward_probability: Prob. de reenvío de la narrativa si adoptado.
     """
 
-    p_create_analog: float = 0.05
-    p_create_digital_base: float = 0.02
-    k_follower: float = 5.0
-    theta_send: float = 0.35
-    forward_base: float = 0.08
-    forward_boost_anger: float = 0.20
-    forward_boost_surprise: float = 0.10
-    attention_capacity: int = 7
-    self_confidence_floor: float = 0.5
-    genetics_mu: float = 0.5
-    genetics_sigma: float = 0.15
+    enabled: bool = True
+    k_seeds: int = 1
+    seed_strategy: Literal["hubs", "random"] = "hubs"
+    seed_fanout: float = 0.4
+    veracity: float = 0.1
+    narrative_veracity_threshold: float = 0.30
+    emotional_load: float = 0.6
+    gamma: float = 0.50
+    susceptible_fraction: float = 0.50
+    theta_susceptible_mu: float = 0.25
+    theta_resistant_mu: float = 0.75
+    theta_sigma: float = 0.10
+    forward_probability: float = 0.25
 
 
 @dataclass
@@ -69,14 +81,15 @@ class AgentConfig:
 
     Attributes:
         type: Clase de agente a instanciar.
-        fire_probability: Probabilidad de disparo por paso (solo stochastic).
-        brain: Hiperparámetros del cerebro (sólo si ``type == "bayesian"``).
+        fire_probability: Probabilidad de disparo por paso (stochastic y
+            resistant; en resistant es el ruido neutro ambiental).
+        narrative: Parámetros de la narrativa (sólo si ``type == "resistant"``).
     """
 
-    type: Literal["stochastic", "bayesian"] = "stochastic"
-    fire_probability: float = 0.20
+    type: Literal["stochastic", "resistant"] = "resistant"
+    fire_probability: float = 0.2
     trace_continue_probability: float = 0.50
-    brain: BrainConfig = field(default_factory=BrainConfig)
+    narrative: NarrativeConfig = field(default_factory=NarrativeConfig)
 
 
 @dataclass
@@ -94,7 +107,7 @@ class OutputConfig:
     basename: str = "simulation"
     export_format: Literal["csv", "json", "none"] = "json"
     save_graph: bool = True
-    render_plots: bool = True
+    render_plots: bool = False
     render_gif: bool = False
 
 
@@ -114,8 +127,8 @@ class ErdosConfig:
     """
 
     type: Literal["erdos"] = field(default="erdos", init=False)
-    num_nodes: int = 10_000
-    edge_prob: float = 0.25
+    num_nodes: int = 30
+    edge_prob: float = 0.1
     directed: bool = False
     layer: Literal["analog", "digital"] = "analog"
 
@@ -216,6 +229,6 @@ GraphConfig = Union[ErdosConfig, ScaleFreeConfig, WattsConfig, SNAPConfig, Multi
 # ---------------------------------------------------------------------------
 
 SIMULATION: SimulationConfig = SimulationConfig()
-GRAPH: GraphConfig = ErdosConfig()
+GRAPH: GraphConfig = WattsConfig()
 AGENT: AgentConfig = AgentConfig()
 OUTPUT: OutputConfig = OutputConfig()

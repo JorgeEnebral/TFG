@@ -53,6 +53,27 @@ class Interaction:
 
 
 @dataclass
+class Adoption:
+    """Un evento de adopción = un agente cruza su umbral de resistencia.
+
+    Solo se registra la primera vez que un agente adopta la narrativa (no
+    las semillas, que arrancan adoptadas por inyección). Es la fuente de
+    verdad para la curva de adopción y las métricas de resistencia.
+
+    Attributes:
+        node: Nodo que adopta la narrativa.
+        timestep: Paso de simulación en el que cruza el umbral.
+        conviction: Convicción acumulada en el momento de adoptar.
+        exposures: Nº de exposiciones a la narrativa hasta adoptar (dosis).
+    """
+
+    node: int
+    timestep: int
+    conviction: float
+    exposures: int
+
+
+@dataclass
 class DataCollector:
     """Acumula registros y los exporta.
 
@@ -63,6 +84,7 @@ class DataCollector:
     """
 
     interactions: list[Interaction] = field(default_factory=list)
+    adoptions: list[Adoption] = field(default_factory=list)
     _next_trace_id: int = 0
 
     def new_trace_id(self) -> int:
@@ -102,6 +124,23 @@ class DataCollector:
         )
         self.interactions.append(interaction)
         return interaction
+
+    def record_adoption(
+        self,
+        node: int,
+        timestep: int,
+        conviction: float,
+        exposures: int,
+    ) -> Adoption:
+        """Registra la adopción de la narrativa por un agente."""
+        adoption = Adoption(
+            node=node,
+            timestep=timestep,
+            conviction=conviction,
+            exposures=exposures,
+        )
+        self.adoptions.append(adoption)
+        return adoption
 
     def __len__(self) -> int:
         """Número de interacciones acumuladas.
@@ -149,6 +188,27 @@ class DataCollector:
             writer.writeheader()
             for tr in self.interactions:
                 writer.writerow(asdict(tr))
+        return path
+
+    def adoptions_to_csv(self, path: str | Path) -> Path:
+        """Exporta los eventos de adopción a un fichero CSV.
+
+        Args:
+            path: Ruta de destino. Las carpetas padre se crean si no existen.
+
+        Returns:
+            La ruta efectivamente escrita, como `Path`.
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["node", "timestep", "conviction", "exposures"],
+            )
+            writer.writeheader()
+            for ad in self.adoptions:
+                writer.writerow(asdict(ad))
         return path
 
     def to_json(self, path: str | Path) -> Path:

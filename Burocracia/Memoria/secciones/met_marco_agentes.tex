@@ -1,0 +1,202 @@
+\paragraph{¿Por qué modelos basados en agentes?}
+
+El modelado basado en agentes (ABM, \emph{Agent-Based Modeling}) ofrece ventajas estructurales frente a los enfoques alternativos para simular la propagación de narrativas en redes sociales.
+
+Los modelos de ecuaciones diferenciales ordinarias (ODE), heredados de la epidemiología (modelos SIR, SIS), trabajan con densidades poblacionales homogéneas y asumen que todos los individuos son equivalentes y están en contacto potencial con todos los demás. Esta hipótesis de mezcla homogénea es fundamentalmente incorrecta para redes sociales, donde la estructura de la red ---hubs, comunidades, puentes débiles--- es precisamente el mecanismo que gobierna la difusión \cite{Watts2002,CentolaMacy2007}. Los ABM no imponen dicha homogeneidad: la heterogeneidad emerge de la interacción local entre agentes sobre una topología específica.
+
+Los modelos estadísticos y de aprendizaje automático son potentes para predecir patrones observados, pero no son causales: describen correlaciones entre variables pasadas sin modelar el mecanismo generador. Para el objetivo de este trabajo ---medir cómo la topología y la psicología individual determinan la resiliencia cognitiva--- se requiere un modelo \emph{generativo} que permita intervenir en parámetros individuales y observar el efecto sobre la dinámica colectiva.
+
+Los juegos evolutivos y los modelos de dinámica de opinión (DeGroot, Hegselmann-Krause) capturan la actualización de creencias pero tipicamente asumen homogeneidad de la red, ausencia de contenido emocional en los mensajes, o reglas de actualización simétricas incompatibles con la dirección asimétrica de las plataformas digitales.
+
+El ABM resuelve estas limitaciones con tres propiedades: (i) permite asignar a cada agente un umbral $\theta_i$ individual muestreado de una distribución heterogénea, condición necesaria para observar cascadas no lineales \cite{Granovetter1978}; (ii) sitúa a cada agente en un nodo del grafo y hace que la difusión dependa explícitamente de la estructura de vecindad; y (iii) permite registrar trazas causales de cada mensaje, requisito imprescindible para el análisis \emph{post hoc} de la dinámica de resistencia.
+
+El coste del ABM es computacional: cada réplica simula $N = 5\,000$ agentes durante 45 pasos de simulación, generando decenas de miles de mensajes por corrida. El diseño OFAT con 25 réplicas Monte Carlo y 700 runs totales requiere aproximadamente 30 minutos de CPU con implementación eficiente en Python/Mesa 3.x.
+
+\medskip
+
+El simulador implementa tres modelos de agente de complejidad psicológica creciente.
+Su diseño responde a una lógica de control experimental: el modelo más simple actúa como
+línea base estadística, el modelo intermedio concentra la potencia explicativa de los
+experimentos y el modelo más rico constituye una propuesta teórica para trabajo futuro.
+Los tres comparten la misma interfaz de paso de mensaje sobre el grafo, lo que permite
+intercambiarlos sin modificar la lógica de la simulación.
+
+\paragraph{Agente estocástico (control nulo).}
+La clase \texttt{StochasticAgent} es un agente \emph{reactivo puro}: carece de estado
+cognitivo interno y no mantiene ninguna representación de las narrativas que circulan por
+la red. Su comportamiento en cada paso de la simulación se reduce a dos acciones
+independientes parametrizadas por sendas probabilidades: con probabilidad $p_{\text{fwd}}$
+reenvía el último mensaje recibido a un subconjunto aleatorio de sus seguidores en el
+grafo, y con probabilidad $p_{\text{fire}}$ genera un mensaje de ruido neutro y lo emite
+igualmente a un subconjunto aleatorio. Ambas acciones son independientes en cada paso, de
+modo que un agente puede reenviar y generar ruido simultáneamente, solo una de las dos, o
+ninguna.
+
+La utilidad de este modelo no es descriptiva sino metodológica. Al eliminar toda
+psicología individual, aisla la contribución de la \emph{topología de la red} y del
+\emph{azar} en la difusión de contenidos. Cualquier diferencia observada entre las métricas
+de este agente y las de los modelos más ricos debe atribuirse, por diferencia, a los
+mecanismos cognitivos añadidos en estos últimos. Sin este control nulo sería imposible
+separar el efecto estructural del grafo del efecto de los procesos individuales de
+resistencia o persuasión.
+
+\paragraph{Agente resistente (umbral lineal cognitivo).}
+La clase \texttt{ResistantAgent} es el modelo implementado en los experimentos de esta
+memoria. Incorpora un estado interno compuesto por dos escalares: la \emph{convicción}
+$c_i \in [0,1]$, que cuantifica en qué medida el agente $i$ ha interiorizado una narrativa
+concreta, y el \emph{umbral de resistencia} $\theta_i \in [0,1]$, que marca el nivel de
+convicción necesario para que el agente adopte dicha narrativa. El umbral $\theta_i$ se
+muestrea de una distribución bimodal que modela dos subpoblaciones —susceptible y
+resistente—; su expresión formal se detalla en el diseño de la solución
+(ecuación~\ref{eq:theta}).
+
+Un mensaje pertenece a la narrativa rastreada si y solo si su veracidad $v$ satisface
+$v \leq v_{\text{thr}}$, donde $v_{\text{thr}}$ es un umbral de veracidad global
+configurable. Cuando el agente $i$ recibe un mensaje de la narrativa procedente del
+agente $j$, actualiza su convicción según la regla:
+
+\begin{equation}
+  c_i \;\leftarrow\; c_i + (1 - c_i)\cdot\tau_{j \to i}\cdot\lambda_m\cdot\gamma,
+  \label{eq:conviction}
+\end{equation}
+
+donde $\tau_{j \to i}$ es la confianza que el agente $i$ deposita en el emisor $j$ en la
+capa del mensaje, $\lambda_m \in [0,1]$ es la \emph{carga emocional} del mensaje y
+$\gamma > 0$ es la ganancia de persuasión por exposición. La forma multiplicativa de la
+ecuación garantiza que $c_i$ permanezca acotada en $[0,1]$ y que la tasa de incremento
+decrezca conforme la convicción se aproxima a la saturación, en línea con el marco del
+modelo de umbral lineal de~\cite{KempeKleinbergTardos2003}. El agente adopta la narrativa
+en el instante en que $c_i \geq \theta_i$.
+
+La heterogeneidad de los umbrales $\{\theta_i\}$ —no su valor medio— es el factor
+determinante en la formación de cascadas de adopción: una distribución concentrada impide
+o universaliza la propagación, mientras que la bimodalidad introduce puntos de inflexión
+no lineales en la dinámica de difusión~\cite{Granovetter1978,Watts2002}. Adicionalmente,
+el hecho de que la adopción requiera exposición reiterada al mismo contenido convierte
+este proceso en un \emph{contagio complejo}, cualitativamente distinto de la difusión
+simple y más sensible a la estructura de los puentes débiles~\cite{CentolaMacy2007}.
+
+Una vez adoptada la narrativa, el agente no se vuelve pasivo: en cada paso ulterior
+re-emite espontáneamente su última narrativa con probabilidad $f$ (período infeccioso
+superior a un único paso) y emite ruido neutro con probabilidad $p_{\text{fire}}$. Esta
+capacidad de re-emisión autónoma genera un \emph{contagio autosostenido} en el que los
+nodos adoptados actúan como fuentes secundarias, amplificando la dinámica de cascada más
+allá de la fuente original.
+
+\paragraph{Agente cognitivo-emocional (bayesiano).}
+Las clases \texttt{BayesianAgent} y \texttt{EmotionalBrain} forman el modelo teórico más
+rico del simulador. No se incluye en los experimentos de esta memoria, pero su diseño
+ilustra una dirección de extensión naturalista bien fundamentada. El agente ejecuta el
+bucle \emph{OODA} (observar, orientar, decidir, actuar)~\cite{RushingHerschXu2026}, en el
+que la fase de orientación está mediada por un \emph{cerebro emocional} vectorial.
+
+El estado interno del cerebro es un vector $\mathbf{e} \in [0,1]^{11}$: las ocho emociones
+básicas del modelo de Plutchik~\cite{Plutchik1980} —alegría, confianza, miedo, sorpresa,
+tristeza, aversión, ira y anticipación— más tres dimensiones metacognitivas: atención,
+credulidad y autoconfianza. Cada agente posee además un vector de \emph{genética}
+$\mathbf{g} \in [0,1]^{11}$ que actúa como amplificador estable e individual de la
+respuesta emocional, modelando la variabilidad interindividual en sensibilidad afectiva.
+
+Al observar un mensaje, el cerebro actualiza su estado emocional siguiendo el principio
+de codificación predictiva y actualización bayesiana de creencias~\cite{Friston2010}:
+
+\begin{equation}
+  \Delta = \mathbf{m}_{\text{vec}} \cdot g_{\text{mod}} \cdot \mathbf{g}
+           \cdot \mathrm{attn} \cdot \tau \cdot \mathrm{cred} \cdot \mathrm{circ}(t),
+  \qquad
+  \mathbf{e} \;\leftarrow\; \operatorname{clip}(\mathbf{e} + \Delta,\; 0,\; 1),
+  \label{eq:brain}
+\end{equation}
+
+donde $\mathbf{m}_{\text{vec}}$ es el vector emocional del mensaje, $g_{\text{mod}}$ un
+factor de ganancia por modalidad (texto, imagen, vídeo), $\mathrm{attn}$ la atención
+actual del agente, $\tau$ la confianza en el emisor, $\mathrm{cred}$ la credulidad
+disposicional y $\mathrm{circ}(t)$ un modulador circadiano. Entre pasos se aplica un
+decaimiento exponencial por dimensión
+$e_k \leftarrow e_k \cdot 2^{-1/h_{1/2}}$,
+donde $h_{1/2}$ es la vida media emocional en pasos de simulación. El modulador circadiano
+adopta la forma
+\[
+  \mathrm{circ}(t) = \mathrm{base} + \mathrm{amp}
+  \cdot \cos\!\Bigl(\frac{2\pi(h - h_{\mathrm{pico}})}{24}\Bigr),
+\]
+con un pico de sugestionabilidad positiva en horas matinales y un pico de afecto negativo
+nocturno, en consonancia con los patrones afectivos observados en redes sociales a lo
+largo del día~\cite{GolderMacy2011}.
+
+El motivo por el que este modelo no entra en los experimentos es de orden metodológico: el
+determinismo y la trazabilidad del agente de umbral bastan para medir la resistencia a la
+desinformación de forma reproducible y controlada. El cerebro emocional vectorial introduce
+fuentes de no-determinismo adicionales —el decaimiento por dimensión, la modulación
+circadiana continua, la interacción multiplicativa de once dimensiones— que, sin un diseño
+experimental específicamente orientado a ellas, oscurecerían la atribución causal y
+elevarían el coste computacional sin una ganancia proporcional en la validez interna del
+experimento.
+
+\begin{figure}[h!]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
+PENDIENTE (figura a generar): Esquema del cerebro emocional de 11~dimensiones del
+\texttt{EmotionalBrain}. Las 8~emociones de Plutchik aparecen en la periferia y las
+3~dimensiones metacognitivas (atención, credulidad, autoconfianza) en el centro. Flechas
+indican el flujo de actualización al recibir un mensaje: entrada $\mathbf{m}_{\text{vec}}$,
+modulación por $\mathbf{g}$, $\tau$, $\mathrm{circ}(t)$, y salida $\mathbf{e}$
+actualizado mediante la ecuación~\eqref{eq:brain}.%
+\vspace{1.5cm}}}
+\caption{Arquitectura del cerebro emocional vectorial del agente cognitivo-emocional.
+         El estado interno es un vector de 11~dimensiones actualizado en cada observación
+         (ecuación~\eqref{eq:brain}).}
+\label{fig:cerebro}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
+PENDIENTE (figura a generar): Rueda de emociones de Plutchik~\cite{Plutchik1980} con las
+ocho emociones básicas y sus combinaciones diádicas primarias, coloreada según valencia
+afectiva (tonos cálidos para emociones positivas, fríos para negativas). Se destacan las
+ocho dimensiones adoptadas en el modelo:
+\textit{joy, trust, fear, surprise, sadness, disgust, anger, anticipation}.%
+\vspace{1.5cm}}}
+\caption{Rueda de emociones de Plutchik~\cite{Plutchik1980}. Las ocho emociones básicas
+         de la periferia constituyen las primeras ocho dimensiones del vector de estado
+         $\mathbf{e}$ del \texttt{EmotionalBrain}.}
+\label{fig:plutchik}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Comparativa de los tres modelos de agente implementados en el simulador.}
+\label{tab:agentes}
+\begin{tabular}{@{}p{3cm} p{2.7cm} p{4.1cm} p{1.6cm} p{2cm}@{}}
+\toprule
+\textbf{Modelo} &
+\textbf{Estado interno} &
+\textbf{Regla de decisión} &
+\textbf{Determinista} &
+\textbf{En experimentos} \\
+\midrule
+Estocástico
+(\texttt{StochasticAgent})
+  & Ninguno
+  & Reenvío y ruido con probabilidades $p_{\text{fwd}}$, $p_{\text{fire}}$
+  & No
+  & Sí (control) \\
+\addlinespace
+Resistente
+(\texttt{ResistantAgent})
+  & $c_i,\,\theta_i \in [0,1]$
+  & Umbral lineal: adoptar si $c_i \geq \theta_i$ \cite{KempeKleinbergTardos2003,Granovetter1978}
+  & Sí
+  & Sí \\
+\addlinespace
+Cognitivo-emocional
+(\texttt{BayesianAgent})
+  & $\mathbf{e},\,\mathbf{g} \in [0,1]^{11}$
+  & Actualización bayesiana del vector emocional \cite{Friston2010,Plutchik1980}
+  & No
+  & No \\
+\bottomrule
+\end{tabular}
+\end{table}

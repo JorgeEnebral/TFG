@@ -15,11 +15,20 @@ ejecuta su método `step()` (definido por la subclase concreta).
                      cerebro inyectado (``Brain``).
 - `EmotionalBrain` : implementación de ``Brain`` puramente emocional;
                      mantiene humor con decay y decide sin tópicos.
+- `ResistantAgent` : agente con adopción de narrativa por umbral (Linear
+                     Threshold) para medir resistencia cognitiva.
 """
 
 from src.agents.base import BaseAgent
 from src.agents.bayesian import BayesianAgent
 from src.agents.brain import EmotionalBrain
+from src.agents.resistant import ResistantAgent
 from src.agents.stochastic import StochasticAgent
 
-__all__ = ["BaseAgent", "BayesianAgent", "EmotionalBrain", "StochasticAgent"]
+__all__ = [
+    "BaseAgent",
+    "BayesianAgent",
+    "EmotionalBrain",
+    "ResistantAgent",
+    "StochasticAgent",
+]

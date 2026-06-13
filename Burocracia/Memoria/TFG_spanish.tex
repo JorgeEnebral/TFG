@@ -1,0 +1,662 @@
+\documentclass[12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[main=spanish, english]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage{lipsum}
+\usepackage{tocloft} 
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\setlength{\jot}{14pt}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{pifont}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{listings}
+\usepackage{subfiles}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  numbers=left,
+  numberstyle=\tiny,
+  frame=none,
+  captionpos=b,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\definecolor{darkred}{rgb}{0,0,0}
+\definecolor{darkgreen}{rgb}{0,0.8,0}
+\definecolor{darkblue}{rgb}{0,0,1}
+
+\usepackage[
+    backend=biber,
+    style=ieee
+]{biblatex}
+
+\addbibresource{ref_tfg.bib}
+\addbibresource{ref_executive_summary.bib}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    linkcolor=darkred,
+    filecolor=darkblue,
+    urlcolor=darkred,
+    citecolor=darkgreen
+}
+
+% Language-dependent names
+\addto\captionsspanish{
+    \renewcommand{\contentsname}{Índice}
+    \renewcommand{\listfigurename}{Índice de figuras}
+    \renewcommand{\listtablename}{Índice de tablas}
+    \renewcommand{\figurename}{Figura}
+    \renewcommand{\tablename}{Tabla}
+    \renewcommand{\lstlistingname}{Algoritmo}
+    \floatname{algorithm}{Algoritmo}
+}
+
+\addto\captionsenglish{
+    \renewcommand{\contentsname}{Contents}
+    \renewcommand{\listfigurename}{List of Figures}
+    \renewcommand{\listtablename}{List of Tables}
+    \renewcommand{\figurename}{Figure}
+    \renewcommand{\tablename}{Table}
+    \renewcommand{\lstlistingname}{Algorithm}
+    \floatname{algorithm}{Algorithm}
+}
+
+% Language-dependent autoref names
+\addto\extrasspanish{
+    \renewcommand{\tableautorefname}{Tabla}
+    \renewcommand{\figureautorefname}{Figura}
+    \renewcommand{\equationautorefname}{Ecuación}
+    \renewcommand{\sectionautorefname}{Sección}
+    \renewcommand{\subsectionautorefname}{Sección}
+}
+
+\addto\extrasenglish{
+    \renewcommand{\tableautorefname}{Table}
+    \renewcommand{\figureautorefname}{Figure}
+    \renewcommand{\equationautorefname}{Equation}
+    \renewcommand{\sectionautorefname}{Section}
+    \renewcommand{\subsectionautorefname}{Section}
+}
+
+\newcommand{\blankpage}{
+    \clearpage
+    \thispagestyle{empty}
+    \mbox{}
+    \clearpage
+}
+
+\usepackage{titlesec}
+\usepackage{tocloft}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {Capítulo \thesection}
+  {1em}
+  {}
+
+\renewcommand{\cftsecpresnum}{Capítulo~}
+\setlength{\cftsecnumwidth}{6em}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CONFIGURATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\projectTitle}{Interacciones y Dinámicas en la Aldea Global: Modelado Matemático y Psicosocial de la Guerra Cognitiva en Redes Complejas}
+\newcommand{\projectTitleEnglish}{Interactions and Dynamics in the Global Village: Mathematical and Psychosocial Modelling of Cognitive Warfare in Complex Networks}
+\newcommand{\Author}{Jorge Enebral Alonso}
+\newcommand{\Director}{David Martín-Corral Calvo}
+\newcommand{\MonthToSubmit}{Junio }
+\newcommand{\BeginYear}{2025}
+\newcommand{\EndYear}{\number\numexpr\BeginYear+1\relax }
+
+% Title page command
+\newcommand{\ComillasTitlePage}{
+\begin{titlepage}
+    \centering
+
+    \includegraphics[width=0.35\textwidth]{images/Logo_comillas.png}\\[1cm] 
+
+    {\Huge \textbf{GRADO EN INGENIER\'IA}}\\[0.3cm]
+    {\Huge \textbf{MATEM\'ATICA E INTELIGENCIA}}\\[0.5cm]
+    {\Huge \textbf{ARTIFICIAL}}\\[1.5cm]
+
+    {\Huge \textbf{TRABAJO FIN DE GRADO}}\\[1.3cm]
+
+    {\huge \projectTitle}\\[0.5cm]
+
+    \vspace{20mm}
+
+    \textbf{Autor: \Author}\\[1.0cm]
+    \textbf{Director: \Director}\\
+
+    \raisebox{-2cm}[0cm][0cm]{\large Madrid, \MonthToSubmit \EndYear}
+
+    \vfill
+\end{titlepage}
+}
+
+\newcommand{\sectionnotoc}[1]{%
+    \refstepcounter{section}%
+    \section*{\thesection\quad #1}%
+}
+
+\newcommand{\resetcounters}{
+    \setcounter{section}{0}
+    \setcounter{subsection}{0}
+    \setcounter{subsubsection}{0}
+    \setcounter{figure}{0}
+    \setcounter{table}{0}
+    \setcounter{equation}{0}
+    \setcounter{footnote}{0}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\geometry{top=2.5cm, bottom=4cm, left=2.5cm, right=2.5cm}
+
+\begin{document}
+
+\selectlanguage{spanish}
+
+\ComillasTitlePage
+
+\setlength{\headheight}{2cm}
+
+% Configuraci\'on del encabezado
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\includegraphics[width=2cm]{images/Color_logo_comillas.png}} 
+
+\fancyhead[C]{
+    \textbf{UNIVERSIDAD PONTIFICIA COMILLAS}\\
+    Escuela T\'ecnica Superior de Ingenier\'ia (ICAI)\\
+    Grado en Ingenier\'ia Matem\'atica e Inteligencia Artificial
+}
+
+\fancyfoot[C]{\thepage}
+
+\blankpage
+
+\subfile{Anexo_I_spanish.tex}
+
+\newpage
+
+\ComillasTitlePage
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% RESUMEN EJECUTIVO IN SPANISH
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\captionsetup[figure]{list=false}
+\captionsetup[table]{list=false}
+
+\begin{otherlanguage}{spanish}
+
+{\large \MakeUppercase{\projectTitle}}
+\vspace{3mm}
+
+\textbf{Autor: \Author}
+
+Director: \Director
+
+\section*{Resumen}
+
+Este trabajo diseña y construye un simulador multiagente de propagación de narrativas sobre redes complejas para medir la \emph{resistencia cognitiva} de una población frente a un ataque informativo. El simulador combina topologías libre de escala y mundo pequeño con un modelo de agente de umbral lineal, y ejecuta un barrido experimental OFAT (One Factor At a Time) de 2000 corridas con 50 réplicas Monte Carlo. Los resultados muestran que la ganancia de persuasión $\gamma$ y la probabilidad de reenvío son los factores más determinantes de la vulnerabilidad, y que la red libre de escala es significativamente más vulnerable que la de mundo pequeño.
+
+\textbf{Palabras clave}: guerra cognitiva; modelado basado en agentes; resiliencia cognitiva; redes complejas; propagación de narrativas; libre de escala; mundo pequeño.
+
+\section*{Resumen ejecutivo}
+
+\sectionnotoc{Introducci\'on}
+
+La desinformación en redes sociales ha dejado de ser un fenómeno marginal para convertirse en un instrumento de \emph{guerra cognitiva}: el empleo deliberado de mensajes para alterar la percepción, la creencia y la decisión de una población objetivo. La OTAN reconoce formalmente la mente humana como dominio operativo y define la superioridad cognitiva como la capacidad de percibir y actuar sobre el entorno con mayor eficacia que el adversario. La información falsa se propaga hasta seis veces más rápido que la veraz, y los ataques se amplifican mediante la estructura de las plataformas digitales, cuyas redes libre de escala concentran la influencia en un pequeño número de \emph{hubs}.
+
+Pese a la creciente literatura doctrinal, existe un vacío metodológico: no se dispone de un banco de pruebas abierto, cuantitativo y reproducible que permita medir cómo la \emph{resistencia cognitiva} de una población depende de (i) la topología de la red social y (ii) los parámetros de la campaña informativa. Este trabajo cubre ese vacío.
+
+\sectionnotoc{Objetivos}
+
+El objetivo principal es diseñar y construir un simulador multiagente de propagación de narrativas que permita medir la resistencia cognitiva de una población ante distintas condiciones de ataque. Los objetivos secundarios son: (O1) formalizar la sociedad como grafo en sus variantes libre de escala (capa digital) y mundo pequeño (capa analógica); (O2) implementar un agente de umbral lineal con heterogeneidad cognitiva; y (O3) ejecutar un barrido experimental OFAT sobre cinco palancas de la narrativa y cuantificar su efecto sobre la resiliencia poblacional.
+
+La pregunta central del trabajo es: \emph{¿qué propiedades de la narrativa y de la red determinan si una población resiste o colapsa ante una campaña de desinformación?}
+
+\sectionnotoc{Descripci\'on del simulador}
+
+El simulador se construye sobre \texttt{Mesa\,3.x} (Python) y \texttt{NetworkX}. El objeto central es el mensaje, formalizado como una tupla de doce campos que incluye veracidad percibida, carga emocional y trazabilidad causal. Cada agente ejecuta el bucle OODA: observa mensajes, actualiza su convicción $c_i$ según la ecuación $c_i \leftarrow c_i + (1-c_i)\cdot\tau\cdot\lambda\cdot\gamma$, y adopta la narrativa cuando $c_i \geq \theta_i$. El umbral $\theta_i$ se muestrea de una distribución bimodal que modela dos subpoblaciones: susceptibles ($\mu_s = 0{,}30$) y resistentes ($\mu_r = 0{,}70$).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.90\linewidth]{images/arquitectura_grafo_agentes.jpg}
+    \caption{Arquitectura del agente resistente sobre la red social. Un nodo de la red (con cerebro) se expande para mostrar el bucle OODA: \textbf{(1)~Observar} (filtrar mensajes de narrativa del inbox), \textbf{(2)~Orientar} (actualizar convicción $c_i$ y comprobar umbral $\theta_i$) y \textbf{(3)~Decidir/Actuar} (re-emitir narrativa o ruido al grafo).}
+    \label{fig:arch-es}
+\end{figure}
+
+El diseño experimental sigue la estrategia OFAT: se fija una configuración de referencia y se varía un único factor por experimento sobre dos topologías (libre de escala y mundo pequeño). En total se ejecutan 2000 corridas de simulación con $N = 10\,000$ agentes y 45 pasos de simulación.
+
+\sectionnotoc{Resultados}
+
+La Figura~\ref{fig:arch-es} ilustra la arquitectura del agente y su posición en la red; los resultados cuantitativos del barrido se detallan en el Capítulo~\ref{sec:results}. En síntesis: Los factores más determinantes de la vulnerabilidad son la \textbf{ganancia de persuasión} $\gamma$ y la \textbf{probabilidad de reenvío} $f$: al pasar $\gamma$ de $0{,}25$ a $0{,}75$, la tasa de ataque aumenta de $0{,}32$ a $0{,}59$ en la red libre de escala y de $0{,}05$ a $0{,}69$ en la red de mundo pequeño. La probabilidad de reenvío muestra un patrón similar: $f = 0{,}4$ casi triplica la penetración respecto a $f = 0{,}1$.
+
+La \textbf{estrategia de siembra} es el factor más asimétrico: en la red libre de escala, sembrar en \emph{hubs} produce una tasa de ataque de $0{,}52 \pm 0{,}05$ frente a $0{,}16 \pm 0{,}12$ con siembra aleatoria (brecha de 24 puntos porcentuales). En la red de mundo pequeño la asimetría es menor ($0{,}25$ vs $0{,}17$), lo que refleja la ausencia de \emph{hubs} de alto grado.
+
+La \textbf{topología} es el factor estructural dominante: bajo condiciones de referencia, la resiliencia de la red de mundo pequeño ($R = 0{,}75$) es significativamente superior a la de la red libre de escala ($R = 0{,}48$). La velocidad de propagación también difiere: el tiempo de penetración $t_{50}$ es de $\approx 15$ pasos en la red libre de escala frente a $\approx 32$ en la de mundo pequeño, mostrando que los \emph{hubs} aceleran la cascada de adopción.
+
+\sectionnotoc{Conclusiones}
+
+El simulador demuestra que la resiliencia cognitiva de una población es una propiedad emergente sensible a factores controlables por el atacante ($\gamma$, $f$, estrategia de semilla) y a propiedades estructurales de la red (topología). Las dos principales aportaciones metodológicas son: (i) un banco de pruebas abierto y reproducible para medir la resistencia cognitiva en función de parámetros de la campaña y de la red, y (ii) un conjunto de métricas operacionales ---tasa de ataque, resiliencia, entropía cognitiva, $t_{50}$--- que trasladan el concepto de superioridad cognitiva de la OTAN a magnitudes medibles sobre una población simulada.
+
+La línea de trabajo futuro más relevante es extender el experimento al agente cognitivo-emocional bayesiano y a redes reales descargadas de SNAP, así como estudiar contramedidas de resiliencia (vacunación topológica, inyección de contra-narrativa) cuantificando su eficacia en el mismo marco experimental.
+
+\end{otherlanguage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% EXECUTIVE SUMMARY IN ENGLISH
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+\resetcounters
+
+\begin{otherlanguage}{english}
+
+{\large \MakeUppercase{\projectTitleEnglish}}
+\vspace{3mm}
+
+\textbf{Author: \Author}
+
+Director: \Director
+
+\section*{Abstract}
+
+This work designs and builds a multi-agent simulator of narrative propagation over complex networks to measure the \emph{cognitive resilience} of a population against an information attack. The simulator combines scale-free and small-world topologies with a linear threshold agent model and runs an OFAT (One Factor At a Time) experimental sweep of 2\,000 runs with 50 Monte Carlo replicas. Results show that persuasion gain $\gamma$ and forwarding probability are the strongest drivers of vulnerability, and that scale-free networks are significantly more vulnerable than small-world networks.
+
+\textbf{Keywords}: cognitive warfare; agent-based modelling; cognitive resilience; complex networks; narrative propagation; scale-free; small-world.
+
+\section*{Executive Summary}
+
+\sectionnotoc{Introduction}
+
+Disinformation in social networks has evolved from a marginal phenomenon into an instrument of \emph{cognitive warfare}: the deliberate use of messages to alter the perception, belief and decision-making of a target population. NATO formally recognises the human mind as an operational domain and defines cognitive superiority as the ability to perceive and act on the environment more effectively than the adversary. False information spreads up to six times faster than true information, and attacks are amplified by the structure of digital platforms, whose scale-free networks concentrate influence in a small number of high-degree \emph{hubs}.
+
+Despite a growing doctrinal literature, a methodological gap remains: there is no open, quantitative, reproducible testbed that enables measurement of how \emph{cognitive resilience} depends on (i) the topology of the social network and (ii) the parameters of the information campaign. This work fills that gap.
+
+\sectionnotoc{Objectives}
+
+The primary objective is to design and build a multi-agent simulator of narrative propagation capable of measuring the cognitive resilience of a population under varying attack conditions. Secondary objectives are: (O1) formalise society as a graph in its scale-free (digital layer) and small-world (analogue layer) variants; (O2) implement a linear threshold agent with cognitive heterogeneity; and (O3) execute an OFAT experimental sweep over five narrative levers and quantify their effect on population resilience.
+
+The central research question is: \emph{which properties of the narrative and the network determine whether a population resists or collapses under a disinformation campaign?}
+
+\sectionnotoc{Description of the Simulator}
+
+The simulator is built on \texttt{Mesa\,3.x} (Python) and \texttt{NetworkX}. The central object is the message, formalised as a twelve-field tuple including perceived veracity, emotional load and causal traceability. Each agent executes the OODA loop: it observes messages, updates its conviction $c_i$ according to $c_i \leftarrow c_i + (1-c_i)\cdot\tau\cdot\lambda\cdot\gamma$, and adopts the narrative when $c_i \geq \theta_i$. The threshold $\theta_i$ is sampled from a bimodal distribution modelling two subpopulations: susceptible ($\mu_s = 0.30$) and resistant ($\mu_r = 0.70$).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.90\linewidth]{images/arquitectura_grafo_agentes.jpg}
+    \caption{Architecture of the resistant agent on the social network. One node of the network (with a brain) is expanded to show the OODA loop: \textbf{(1)~Observe} (filter narrative messages from inbox), \textbf{(2)~Orient} (update conviction $c_i$ and check threshold $\theta_i$) and \textbf{(3)~Decide/Act} (re-emit narrative or noise to the graph).}
+    \label{fig:arch-en}
+\end{figure}
+
+The experimental design follows the OFAT strategy: a reference configuration is fixed and a single factor is varied per experiment across two topologies (scale-free and small-world). In total, 2\,000 simulation runs are executed with $N = 10\,000$ agents and 45 simulation steps.
+
+\sectionnotoc{Results}
+
+Figure~\ref{fig:arch-en} illustrates the agent architecture and its position in the network; detailed quantitative results of the sweep are in Chapter~\ref{sec:results}. In summary: the strongest drivers of vulnerability are \textbf{persuasion gain} $\gamma$ and \textbf{forwarding probability} $f$: raising $\gamma$ from $0.25$ to $0.75$ increases the attack rate from $0.32$ to $0.59$ on scale-free networks and from $0.05$ to $0.69$ on small-world networks. The forwarding probability shows a similar pattern: $f = 0.4$ nearly triples penetration relative to $f = 0.1$.
+
+\textbf{Seeding strategy} is the most asymmetric factor: on scale-free networks, hub seeding produces an attack rate of $0.52 \pm 0.05$ vs $0.16 \pm 0.12$ for random seeding (a 24 percentage-point gap). On small-world networks the asymmetry is smaller ($0.25$ vs $0.17$), reflecting the absence of high-degree hubs.
+
+\textbf{Network topology} is the dominant structural factor: under baseline conditions, the resilience of the small-world network ($R = 0.75$) is significantly higher than that of the scale-free network ($R = 0.48$). Propagation speed also differs: the half-adoption time $t_{50}$ is $\approx 15$ steps on scale-free vs $\approx 32$ steps on small-world, showing that hubs accelerate the adoption cascade.
+
+\sectionnotoc{Conclusions}
+
+The simulator demonstrates that the cognitive resilience of a population is an emergent property sensitive to parameters controllable by the attacker ($\gamma$, $f$, seeding strategy) and to structural properties of the network (topology). The two main methodological contributions are: (i) an open, reproducible testbed for measuring cognitive resilience as a function of campaign and network parameters, and (ii) a set of operational metrics---attack rate, resilience, cognitive entropy, $t_{50}$---that translate NATO's concept of cognitive superiority into measurable quantities over a simulated population.
+
+The most relevant direction for future work is to extend the experiments to the Bayesian cognitive-emotional agent and to real-world networks from SNAP, and to study resilience countermeasures (topological vaccination, counter-narrative injection) by quantifying their effectiveness within the same experimental framework.
+
+\end{otherlanguage}
+
+\newpage
+
+\resetcounters
+
+\captionsetup[figure]{list=true}
+\captionsetup[table]{list=true}
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\tableofcontents
+\thispagestyle{fancy}
+\newpage
+\setcounter{page}{1}
+\fancyfoot[C]{
+    \begin{center}
+        \thepage
+    \end{center}
+} 
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\footskip}{0.8cm}
+
+\newpage
+\selectlanguage{spanish}
+
+\phantomsection
+\listoffigures
+
+\newpage
+
+\phantomsection
+\listoftables
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introducci\'on %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{refsection}[ref_tfg.bib]
+\section{Introducci\'on}
+
+La met\'afora de la \emph{aldea global} acu\~nada por McLuhan \cite{McLuhan1964} anticip\'o una humanidad reconectada por los medios electr\'onicos en un \'unico espacio de comunicaci\'on instant\'anea. Las redes sociales digitales han llevado esa intuici\'on al extremo: hoy dos personas cualesquiera est\'an separadas, en promedio, por menos de cuatro intermediarios \cite{Backstrom2012}. Esta hiperconexi\'on, motor de oportunidades sin precedentes, es tambi\'en una superficie de ataque. La informaci\'on falsa se difunde m\'as lejos, m\'as r\'apido y a m\'as personas que la veraz \cite{Vosoughi2018}, y la mediaci\'on algor\'itmica de las plataformas favorece la formaci\'on de c\'amaras de eco y la polarizaci\'on de la opini\'on p\'ublica \cite{DelVicario2016}.
+
+En este contexto ha emergido la \emph{guerra cognitiva} (\emph{cognitive warfare}) como dominio operativo reconocido formalmente por la OTAN, que la define como la lucha por la \emph{superioridad cognitiva} \cite{NATOChiefScientist2025}. A diferencia de la guerra convencional, su terreno no es geogr\'afico sino mental: \emph{el mensaje es la munici\'on y el blanco es la mente} \cite{Hoffman2025}. El objetivo de este cap\'itulo es introducir el problema, justificar por qu\'e debe abordarse y describir la aportaci\'on del trabajo.
+
+\subsection{Motivaci\'on}
+
+La literatura sobre guerra cognitiva ha crecido de forma acelerada entre 2020 y 2026, pero lo ha hecho de manera marcadamente asim\'etrica: es abundante en lo conceptual y doctrinal, y escasa en herramientas \emph{abiertas, cuantitativas y reproducibles} que permitan estudiar el fen\'omeno de forma experimental \cite{DeppeSchaal2024}. La mayor parte de las capacidades operativas, tanto ofensivas como defensivas, permanece clasificada.
+
+Existe, por tanto, un vac\'io metodol\'ogico: no se dispone de un banco de pruebas que permita \emph{medir} c\'omo una poblaci\'on absorbe o resiste la propagaci\'on de una narrativa en funci\'on de (i) la topolog\'ia de la red social que la sostiene y (ii) la psicolog\'ia de los individuos que la componen. Cubrir ese vac\'io —aunque sea parcialmente, sobre un modelo simplificado pero matem\'aticamente fundamentado— es lo que motiva este proyecto, pues habilita el estudio sistem\'atico de la \emph{resiliencia cognitiva} como propiedad emergente y medible de un sistema social.
+
+\subsection{Objetivos}
+
+El objetivo principal de este Trabajo Fin de Grado es:
+
+\begin{itemize}
+    \item \textbf{Objetivo principal.} Dise\~nar y construir un simulador multiagente de propagaci\'on de narrativas sobre redes complejas que permita medir la \emph{resistencia cognitiva} de una poblaci\'on frente a un ataque informativo.
+\end{itemize}
+
+Para alcanzarlo se definen tres objetivos secundarios:
+
+\begin{itemize}
+    \item \textbf{O1.} Formalizar matem\'aticamente la sociedad como un grafo en sus tres registros —aleatorio sint\'etico, multicapa anal\'ogico-digital y real— y caracterizar sus propiedades estructurales.
+    \item \textbf{O2.} Formalizar tres modelos de agente de complejidad creciente (reactivo estoc\'astico, resistente por umbral y cognitivo-emocional) y situarlos en la literatura de difusi\'on y contagio social.
+    \item \textbf{O3.} Implementar un subconjunto representativo (red libre de escala con agente resistente), definir m\'etricas de resistencia poblacional e individual, y dejar establecido el dise\~no experimental para su evaluaci\'on.
+\end{itemize}
+
+\subsection{Estructura del trabajo}
+
+El resto de la memoria se organiza como sigue. 
+
+El Cap\'itulo~\ref{sec:related} (Estado del arte) revisa de forma sint\'etica los trabajos de referencia en guerra cognitiva, modelado de redes complejas y din\'amicas de contagio social. 
+
+El Cap\'itulo~\ref{sec:methodology} (Metodolog\'ia) desarrolla en detalle el marco te\'orico empleado —el mensaje y el bucle OODA, los modelos de grafo y los modelos de agente—, el dise\~no de la soluci\'on programada y su implementaci\'on. 
+
+El Cap\'itulo~\ref{sec:results} (Resultados) describe las m\'etricas y los experimentos previstos. 
+
+Finalmente, el Cap\'itulo~\ref{sec:conclusion} recoge las conclusiones y las l\'ineas de trabajo futuro.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Trabajos relacionados %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Estado del arte}\label{sec:related}
+
+Este cap\'itulo sit\'ua el proyecto en la literatura mediante una selecci\'on breve de trabajos de referencia en los tres ejes que confluyen en \'el: la guerra cognitiva, el modelado de la sociedad como red compleja y las din\'amicas de contagio y comportamiento colectivo. El desarrollo formal de los modelos se reserva para la metodolog\'ia (Cap\'itulo~\ref{sec:methodology}).
+
+\subsection{Guerra cognitiva}
+
+El documento fundacional de du Cluzel \cite{DuCluzel2021}, elaborado para el Innovation Hub del Mando Aliado de Transformaci\'on de la OTAN, introdujo la definici\'on hoy can\'onica de guerra cognitiva: el arte de emplear tecnolog\'ias para alterar la cognici\'on de objetivos humanos, a menudo sin su conocimiento ni consentimiento. El informe anticip\'o la convergencia de las nano, bio, info y cogno-tecnolog\'ias (NBIC) como multiplicador de la amenaza y advirti\'o de la progresiva armamentizaci\'on de la neurociencia. Su aportaci\'on m\'as duradera es elevar la mente humana a la categor\'ia de dominio operativo, m\'as all\'a de los cinco dominios cl\'asicos (tierra, mar, aire, espacio y ciberespacio).
+
+Deppe y Schaal \cite{DeppeSchaal2024} realizan el primer an\'alisis conceptual acad\'emico del concepto exploratorio de guerra cognitiva del Mando Aliado de Transformaci\'on. Los autores, desde la Universidad de la Bundeswehr, examinan cr\'iticamente la coherencia interna del concepto, delimitan sus fronteras respecto a nociones vecinas (operaciones de informaci\'on, operaciones psicol\'ogicas) y tienden un puente entre la investigaci\'on militar y la civil. Su revisi\'on confirma la asimetr\'ia que motiva este trabajo: la literatura es abundante en lo conceptual y doctrinal, pero escasa en instrumentos emp\'iricos y cuantitativos de medici\'on.
+
+Hoffman \cite{Hoffman2025} ofrece una revisi\'on exhaustiva de la literatura occidental y china sobre el fen\'omeno, fruto de m\'as de cuatro d\'ecadas de experiencia en el Departamento de Defensa estadounidense. Propone una definici\'on refinada centrada en mensajes dirigidos y m\'etodos no violentos contra decisores —civiles o militares— o contra la poblaci\'on general de un Estado objetivo, sintetizada en la m\'axima de que \emph{el mensaje es la munici\'on y el blanco es la mente}. Analiza adem\'as las \emph{Cognitive Domain Operations} del Ej\'ercito Popular de Liberaci\'on chino y el control reflexivo ruso como tradiciones doctrinales paralelas a la occidental.
+
+El informe del Cient\'ifico Jefe de la OTAN \cite{NATOChiefScientist2025} constituye el marco p\'ublico m\'as riguroso publicado hasta la fecha. Define la guerra cognitiva como la lucha por la \emph{superioridad cognitiva} y articula tres funciones operativas: \emph{degradar} las capacidades cognitivas del adversario, \emph{mejorar} las propias y \emph{resistir} los ataques cognitivos. Documenta asimismo el ecosistema investigador de la Alianza —una veintena de actividades de investigaci\'on con m\'as de doscientos expertos de veintis\'eis naciones— y vincula la amenaza a la convergencia NBIC. Es precisamente la tercera funci\'on, la resiliencia, la que el presente trabajo operacionaliza en forma de m\'etricas medibles sobre una poblaci\'on simulada.
+
+Rushing, Hersch y Xu \cite{RushingHerschXu2026} proponen la primera formalizaci\'on unificada de la guerra cognitiva: un marco de interacci\'on atacante--defensor anclado en el bucle OODA (\emph{Observe--Orient--Decide--Act}) y un conjunto de atributos medibles de superioridad cognitiva, ilustrados mediante un caso de estudio. Su contribuci\'on central para este trabajo es conceptual: tratar la cognici\'on colectiva como un sistema observable, atacable y, por tanto, simulable. El bucle OODA de este marco es el que estructura el ciclo de emisi\'on y recepci\'on de mensajes del simulador (Cap\'itulo~\ref{sec:methodology}).
+
+Por \'ultimo, Langlois-Berthelot y Gaie \cite{PolytechniqueCNA2026} sintetizan siete a\~nos de investigaci\'on c\'ivico-militar francesa en el concepto de \emph{Cognitive Net Assessment} (CNA), una adaptaci\'on a la esfera perceptiva del \emph{Net Assessment} del Pent\'agono. El CNA se articula sobre tres ejes cuantificables —sobrecarga decisional, colapso cognitivo y entrop\'ia cognitiva— y documenta el paso de la guerra cognitiva de un estadio artesanal a otro de producci\'on masiva impulsado por la inteligencia artificial generativa. De este marco toma el presente trabajo la entrop\'ia cognitiva como m\'etrica de la diversidad de creencias de la poblaci\'on.
+
+\subsection{Modelado de la sociedad como red compleja}
+
+La representaci\'on de una sociedad como grafo precede en d\'ecadas a la f\'isica de redes complejas y tiene su origen en el \emph{An\'alisis de Redes Sociales} (SNA, \emph{Social Network Analysis}). Moreno \cite{Moreno1934} fund\'o la sociometr\'ia dibujando ya en 1934 \emph{sociogramas} en los que las personas son puntos y sus relaciones, l\'ineas; sobre esa base, las escuelas sociol\'ogicas de las d\'ecadas de 1960 a 1980 consolidaron el SNA como disciplina cuantitativa. Granovetter \cite{Granovetter1973} aport\'o uno de sus resultados m\'as influyentes, la \emph{fuerza de los lazos d\'ebiles}: son los v\'inculos casuales, y no los \'intimos, los que conectan comunidades densas entre s\'i y vehiculan la informaci\'on nueva. El corpus metodol\'ogico del SNA qued\'o sistematizado en el manual de Wasserman y Faust \cite{WassermanFaust1994}, que canoniza las m\'etricas estructurales empleadas en este trabajo: centralidad, cohesi\'on, transitividad y detecci\'on de subgrupos.
+
+La caracterizaci\'on estad\'istica moderna de las redes complejas est\'a sintetizada en el art\'iculo de revisi\'on de Albert y Barab\'asi \cite{AlbertBarabasi2002}. El trabajo unifica los hallazgos emp\'iricos sobre redes reales —distribuciones de grado heterog\'eneas, alto agrupamiento, di\'ametros cortos— y los confronta con los modelos generativos disponibles, demostrando que las redes reales se apartan sistem\'aticamente del paradigma puramente aleatorio. De \'el se toma el aparato formal (distribuci\'on de grado, coeficiente de agrupamiento, longitud media de camino) con el que la metodolog\'ia caracteriza los grafos del simulador.
+
+El modelo de Erd\H{o}s--R\'enyi \cite{ErdosRenyi1960} es el punto de partida de la teor\'ia de grafos aleatorios: cada par de nodos se conecta de forma independiente con probabilidad fija, lo que produce una distribuci\'on de grado de tipo Poisson y permite derivar anal\'iticamente fen\'omenos como la emergencia de la componente gigante. Aunque carece de agrupamiento y de \emph{hubs} —y es por tanto poco realista como modelo de sociedad—, su tratabilidad matem\'atica lo convierte en el \emph{baseline} de referencia frente al que contrastar cualquier topolog\'ia m\'as estructurada.
+
+Watts y Strogatz \cite{WattsStrogatz1998} introdujeron el modelo de \emph{mundo peque\~no} mediante un mecanismo de recableado aleatorio de una ret\'icula regular: basta recablear una peque\~na fracci\'on de aristas para que el di\'ametro de la red colapse mientras el agrupamiento local permanece alto. Esta combinaci\'on —tr\'iadas cerradas y caminos cortos— es exactamente la observada en las redes de relaciones cara a cara, por lo que en este trabajo dicho modelo representa la capa \emph{anal\'ogica} de la sociedad.
+
+Barab\'asi y Albert \cite{BarabasiAlbert1999} mostraron que el crecimiento de la red unido al \emph{enganche preferencial} —los nodos nuevos tienden a conectarse a los ya populares— genera redes \emph{libres de escala} cuya distribuci\'on de grado sigue una ley de potencias. Estas redes exhiben \emph{hubs} que concentran gran parte de la conectividad, lo que las hace robustas frente a fallos aleatorios pero muy vulnerables frente a ataques dirigidos. Esta propiedad, caracter\'istica de las plataformas digitales, fundamenta el experimento de siembra en \emph{hubs} del Cap\'itulo~\ref{sec:results}.
+
+En el plano de las restricciones cognitivas, Dunbar \cite{Dunbar1992} estableci\'o, a partir de la correlaci\'on entre el tama\~no del neoc\'ortex y el de los grupos sociales en primates, que el ser humano puede mantener en torno a 150 relaciones estables y rec\'iprocas. Este l\'imite explica por qu\'e la red anal\'ogica presenta una distribuci\'on de grado acotada, en contraste con las colas pesadas de las plataformas digitales, donde el coste marginal de a\~nadir un v\'inculo es pr\'acticamente nulo.
+
+En el extremo emp\'irico de la escala digital, Backstrom y colaboradores \cite{Backstrom2012} midieron el grafo completo de Facebook —m\'as de 700 millones de usuarios— y obtuvieron una distancia media de 3,74 saltos entre dos personas cualesquiera, muy por debajo de los seis grados cl\'asicos de Milgram. El resultado evidencia la compresi\'on de distancias que las plataformas introducen en la sociedad y justifica la velocidad con que una narrativa puede alcanzar a toda una poblaci\'on conectada.
+
+Finalmente, cuando las dimensiones anal\'ogica y digital coexisten, el formalismo adecuado es el de las \emph{redes multicapa} sistematizado por Kivel\"a y colaboradores \cite{Kivela2014}. Su revisi\'on unifica la notaci\'on del campo y demuestra que agregar las capas en un \'unico grafo destruye informaci\'on estructural y distorsiona m\'etricas como la centralidad o la din\'amica de difusi\'on. Este marco es el que adopta el dise\~no multicapa anal\'ogico-digital del simulador.
+
+\subsection{Comportamiento colectivo y cascadas}
+
+La adopci\'on de una idea o conducta no se explica solo por la estructura de la red, sino tambi\'en por la psicolog\'ia de la decisi\'on individual. Granovetter \cite{Granovetter1978} formaliz\'o los \emph{modelos de umbral} para el comportamiento colectivo: un individuo adopta una conducta cuando la fracci\'on de su entorno que ya lo ha hecho supera su umbral particular. Su an\'alisis demostr\'o un resultado contraintuitivo: es la \emph{heterogeneidad} de la distribuci\'on de umbrales —y no su media— la que determina si la acci\'on colectiva se desencadena o se detiene. Este modelo es la base directa del agente resistente implementado en este trabajo.
+
+Watts \cite{Watts2002} traslad\'o los modelos de umbral a redes aleatorias y demostr\'o que las \emph{cascadas globales} son sucesos poco frecuentes pero de tama\~no enorme cuando ocurren, delimitados por una \emph{ventana de cascada} en el espacio de par\'ametros: si la red es demasiado dispersa la propagaci\'on muere por falta de conectividad, y si es demasiado densa los individuos quedan estabilizados por sus muchos vecinos. La existencia de este punto de inflexi\'on motiva la curva dosis--respuesta del dise\~no experimental del Cap\'itulo~\ref{sec:results}.
+
+Centola y Macy \cite{CentolaMacy2007} introdujeron la distinci\'on entre contagio \emph{simple} y \emph{complejo}. En el contagio simple —propio de enfermedades o de informaci\'on trivial— basta un \'unico contacto para transmitir; en el complejo —propio de creencias, normas y conductas costosas— el individuo requiere refuerzo social desde m\'ultiples fuentes independientes. Los autores muestran que los lazos largos, decisivos para el contagio simple, pueden ser in\'utiles para el complejo. Esta distinci\'on justifica el uso de modelos de umbral, en lugar de modelos puramente epid\'emicos, para representar la adopci\'on de narrativas.
+
+Kempe, Kleinberg y Tardos \cite{KempeKleinbergTardos2003} formularon la \emph{maximizaci\'on de la influencia} como problema algor\'itmico: elegir el conjunto de nodos semilla que maximiza la difusi\'on esperada. Demostraron que el problema es NP-duro pero que, por la submodularidad de la funci\'on de influencia, un algoritmo voraz garantiza una aproximaci\'on del 63\,\% del \'optimo. Visto desde la \'optica de la guerra cognitiva, este resultado describe formalmente la estrategia \'optima del atacante, y es el contrapunto te\'orico del experimento de siembra dirigida en \emph{hubs}.
+
+Del Vicario y colaboradores \cite{DelVicario2016} analizaron emp\'iricamente la difusi\'on de desinformaci\'on en Facebook comparando noticias cient\'ificas y teor\'ias conspirativas. Encontraron que ambas se propagan dentro de \emph{c\'amaras de eco} —comunidades homog\'eneas y polarizadas— y que la homogeneidad ideol\'ogica del vecindario, m\'as que cualquier atributo del contenido, es el principal predictor de la difusi\'on. El hallazgo conecta la estructura comunitaria de la red con la vulnerabilidad cognitiva de la poblaci\'on.
+
+Por \'ultimo, Vosoughi, Roy y Aral \cite{Vosoughi2018} estudiaron unas 126\,000 cascadas de rumores en Twitter verificadas externamente y concluyeron que la informaci\'on falsa llega m\'as lejos, m\'as r\'apido y a m\'as personas que la veraz, y que son los humanos —no los \emph{bots}— quienes la amplifican, atra\'idos por su mayor novedad y por las emociones que suscita. Este resultado respalda la decisi\'on de dotar al objeto mensaje del simulador de una dimensi\'on emocional expl\'icita.
+
+\subsection{Vac\'io identificado}
+
+Pese a la solidez de cada eje por separado, no se ha encontrado un simulador abierto que integre simult\'aneamente una topolog\'ia social realista con confianza diferenciada por capa, un agente cognitivo dotado de umbral de adopci\'on heterog\'eneo, y m\'etricas expl\'icitas de resistencia cognitiva. Cubrir esa intersecci\'on es la aportaci\'on metodol\'ogica de este trabajo.
+
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Metodolog\'ia %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Metodolog\'ia}\label{sec:methodology}
+
+Este cap\'itulo desarrolla, en primer lugar, el marco te\'orico que da soporte al simulador —el objeto \emph{mensaje} y el bucle OODA, los modelos de grafo y los modelos de agente—; a continuaci\'on describe el dise\~no de la soluci\'on efectivamente llevada a programaci\'on; y finalmente detalla su implementaci\'on, arquitectura de c\'odigo y reproducibilidad.
+
+\subsection{Marco te\'orico desarrollado}\label{sec:marco}
+
+\subsubsection{Guerra cognitiva: del concepto al modelo operable}
+\input{secciones/met_marco_guerra_cognitiva}
+
+\subsubsection{Grafos: la sociedad como red}
+\input{secciones/met_marco_grafos}
+
+\subsubsection{Agentes: modelos psicol\'ogicos}
+\input{secciones/met_marco_agentes}
+
+\subsection{Dise\~no de la soluci\'on}\label{sec:diseno}
+\input{secciones/met_diseno}
+
+\subsection{Implementaci\'on}\label{sec:implementacion}
+\input{secciones/met_implementacion}
+
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Experimentos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Resultados}\label{sec:results}
+
+Este capítulo presenta los resultados del barrido experimental OFAT descrito en la Sección~\ref{sec:diseno}: 1\,000 corridas sobre dos topologías (libre de escala y mundo pequeño), siete factores de la narrativa y 50 réplicas Monte Carlo por celda ($N = 10\,000$, $T = 45$ pasos). Cada run es completamente independiente —semilla Monte Carlo distinta que regenera grafo, umbrales $\theta_i$ y trayectoria dinámica— y fue ejecutado en paralelo sobre 20 cores.
+
+\subsection{Visión global: resiliencia por factor y topología}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\linewidth]{images/sweep_marginal_resiliencia.png}
+    \caption{Curvas marginales OFAT. Cada línea muestra la resiliencia media $\pm 1\sigma$ sobre 50 réplicas MC para cada nivel del factor, en la red libre de escala (rojo) y mundo pequeño (azul). La línea discontinua marca $R=0{,}5$.}
+    \label{fig:marginal}
+\end{figure}
+
+La Figura~\ref{fig:marginal} resume el efecto marginal de cada factor sobre la resiliencia poblacional $R = 1 - a$. Destacan tres observaciones transversales.
+
+\textbf{La topología es el factor estructural dominante.} Bajo la configuración de referencia, la red libre de escala presenta una resiliencia media de $0{,}482$ mientras que la de mundo pequeño alcanza $0{,}746$. La diferencia de 26 puntos porcentuales refleja que la concentración de influencia en los \emph{hubs} de la red libre de escala facilita enormemente la penetración de la narrativa. Cuando el atacante siembra en \emph{hubs}, cada semilla contagia a una fracción desproporcionada de la población en los primeros pasos, antes de que los mecanismos de refuerzo social de la red de mundo pequeño puedan activarse.
+
+\textbf{La red de mundo pequeño es más sensible a los factores de intensidad.} En los factores $\gamma$ y $f$, la variación de la resiliencia de la red de mundo pequeño a lo largo de los niveles es mucho mayor que la de la red libre de escala: la pequeña-mundo puede ser casi invulnerable ($R \approx 0{,}95$) con parámetros bajos o casi colapsada ($R \approx 0{,}31$) con parámetros altos. Esto indica que la red de mundo pequeño tiene un punto de inflexión más pronunciado, coherente con la ventana de cascada descrita por Watts~\cite{Watts2002}.
+
+\textbf{El fanout inicial $\rho$ tiene impacto marginal.} En ambas topologías, variar el fanout de $0{,}2$ a $0{,}6$ apenas mueve la resiliencia (variación de menos de 5 puntos porcentuales), lo que indica que una vez lanzada la narrativa con al menos un 20\% de contactos iniciales, la dinámica posterior de reenvío domina sobre el arranque.
+
+\subsection{Efecto de la ganancia de persuasión y la probabilidad de reenvío}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/sweep_gamma_fwd.png}
+    \caption{Sensibilidad de la tasa de ataque a $\gamma$ (izquierda) y a $f$ (derecha). Las bandas sombreadas representan $\pm 1\sigma$ sobre 50 réplicas MC. La red de mundo pequeño exhibe un punto de inflexión más pronunciado que evidencia el umbral de cascada.}
+    \label{fig:gammafwd}
+\end{figure}
+
+La Figura~\ref{fig:gammafwd} muestra la respuesta de ambas topologías ante los dos factores de mayor sensibilidad. La \textbf{ganancia de persuasión} $\gamma$ cuantifica el incremento de convicción por unidad de carga emocional del mensaje: a $\gamma = 0{,}25$, la red libre de escala alcanza una tasa de ataque media de $0{,}32$ mientras que la pequeña-mundo se queda en $0{,}05$; a $\gamma = 0{,}75$, ambas convergen en torno a $0{,}59$--$0{,}69$. El cruce de las curvas sugiere que redes estructuralmente más resistentes (pequeña-mundo) son más sensibles a la intensidad de la persuasión una vez superado un umbral crítico.
+
+La \textbf{probabilidad de reenvío} $f$ muestra un patrón casi idéntico: la red de mundo pequeño pasa de una tasa de ataque de $0{,}046$ con $f = 0{,}10$ a $0{,}688$ con $f = 0{,}40$, con una aceleración especialmente pronunciada entre $f = 0{,}25$ y $f = 0{,}40$. Esta no-linealidad es la huella de la ventana de cascada: por debajo del umbral, el contagio percolativo no puede sostenerse; por encima, la red casi colapsa. En la red libre de escala la respuesta es más gradual porque los \emph{hubs} ya garantizan un nivel alto de difusión incluso con reenvío moderado.
+
+\subsection{Vulnerabilidad estructural: siembra en hubs frente a aleatoria}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/sweep_hubs_vs_random.png}
+    \caption{Distribución de la tasa de ataque según estrategia de siembra, para cada topología. Los números sobre los bigotes indican la media. La ventaja de sembrar en \emph{hubs} es mucho mayor en la red libre de escala.}
+    \label{fig:hubsrandom}
+\end{figure}
+
+La Figura~\ref{fig:hubsrandom} cuantifica la vulnerabilidad estructural de cada topología. En la red libre de escala, sembrar en los 25 \emph{hubs} de mayor in-grado produce una tasa de ataque media de $0{,}518 \pm 0{,}045$ frente a $0{,}163 \pm 0{,}123$ con siembra aleatoria: una \textbf{brecha de 35 puntos porcentuales}. La alta varianza de la siembra aleatoria en escala libre refleja la dependencia de los resultados con la muestra de nodos elegidos: ocasionalmente se seleccionan nodos bien conectados por azar, con efectos similares a los \emph{hubs}.
+
+En la red de mundo pequeño, la brecha es mucho menor ($0{,}254$ vs $0{,}171$, diferencia de 8 puntos porcentuales) y la varianza es comparable en ambas estrategias. Este resultado confirma teóricamente el resultado de Kempe, Kleinberg y Tardos~\cite{KempeKleinbergTardos2003}: la ventaja del sembrado óptimo es mayor en redes con hubs prominentes, y prácticamente se anula en redes con distribución de grado más homogénea.
+
+\subsection{Efecto del número de semillas}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/sweep_k_seeds.png}
+    \caption{Tasa de ataque media $\pm 1\sigma$ en función del número de semillas expresado como fracción de $N = 10\,000$. La red de mundo pequeño muestra mayor sensibilidad: triplicar semillas multiplica por seis la penetración.}
+    \label{fig:kseeds}
+\end{figure}
+
+La Figura~\ref{fig:kseeds} muestra que el número de semillas tiene un efecto moderado pero no despreciable. En la red de mundo pequeño, el impacto es más pronunciado: pasar de 5 semillas ($0{,}1\%$) a 50 ($1\%$) incrementa la tasa de ataque de $0{,}067$ a $0{,}416$, un factor de $6\times$. En la red libre de escala el efecto es menor ($0{,}430 \to 0{,}547$) porque el \emph{hub} de arranque ya captura la mayoría del potencial de propagación con pocos nodos iniciales.
+
+El resultado es coherente con el modelo de maximización de influencia: en redes de mundo pequeño, donde no hay \emph{hubs} que capitalicen el efecto de siembra, el número de semillas es más determinante para alcanzar la masa crítica que desencadena la cascada. En redes libre de escala, la calidad de la semilla (centralidad del nodo) domina sobre la cantidad.
+
+\subsection{Síntesis: ranking de factores}
+
+La Tabla~\ref{tab:ranking} ordena los cinco factores por su rango de variación de la tasa de ataque a lo largo del barrido, como medida del impacto marginal.
+
+\begin{table}[ht]
+    \centering
+    \small
+    \caption{Ranking de factores por impacto sobre la tasa de ataque. El rango es la diferencia entre el nivel máximo y mínimo de tasa de ataque media.}
+    \label{tab:ranking}
+    \begin{tabular}{@{}l cc cc@{}}
+        \toprule
+        & \multicolumn{2}{c}{\textbf{Libre de escala}} & \multicolumn{2}{c}{\textbf{Mundo pequeño}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+        \textbf{Factor} & Mín $a$ & Máx $a$ & Mín $a$ & Máx $a$ \\
+        \midrule
+        Estrategia semilla & $0{,}163$ & $0{,}518$ & $0{,}171$ & $0{,}254$ \\
+        Ganancia $\gamma$ & $0{,}316$ & $0{,}594$ & $0{,}052$ & $0{,}686$ \\
+        Prob.\ reenvío $f$ & $0{,}289$ & $0{,}605$ & $0{,}046$ & $0{,}688$ \\
+        Semillas $k$ & $0{,}430$ & $0{,}547$ & $0{,}067$ & $0{,}416$ \\
+        Fanout $\rho$ & $0{,}491$ & $0{,}524$ & $0{,}235$ & $0{,}260$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La estrategia de siembra tiene el mayor rango en la red libre de escala (35 pp), mientras que $\gamma$ y $f$ dominan en la red de mundo pequeño (64 y 64 pp respectivamente). El fanout es el factor de menor impacto en ambas topologías: una vez que la narrativa alcanza un mínimo de vecinos en el arranque, la dinámica posterior es independiente de ese parámetro.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Conclusiones %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusiones y Trabajo Futuro}\label{sec:conclusion}
+
+\subsection{Conclusiones}
+
+Este trabajo ha diseñado, implementado y evaluado un simulador multiagente de propagación de narrativas sobre redes complejas orientado a medir la resistencia cognitiva de una población. Los resultados del barrido OFAT de 1\,000 corridas ($N=10\,000$, 50 réplicas MC, 7 factores) permiten extraer las siguientes conclusiones.
+
+\textbf{C1. La topología es el factor de resiliencia más robusto.} Bajo condiciones de referencia, la red de mundo pequeño exhibe una resiliencia de $0{,}746$ frente a $0{,}482$ de la red libre de escala, una diferencia que se mantiene estable a lo largo de todos los factores analizados. La arquitectura de la red no es un factor controlable por el defensor en el corto plazo ---la sociedad está organizada como está--- pero sí indica dónde es más urgente invertir en resiliencia: las plataformas digitales libre de escala son estructuralmente más vulnerables que las redes de relaciones presenciales.
+
+\textbf{C2. La ganancia de persuasión y la viralidad son los factores más palancables por el atacante.} Los parámetros $\gamma$ (intensidad de la persuasión emocional) y $f$ (probabilidad de reenvío) controlan si la narrativa permanece confinada o desencadena una cascada global, especialmente en la red de mundo pequeño donde el punto de inflexión es pronunciado. Desde la perspectiva defensiva, estos resultados sugieren que las intervenciones más eficaces son las que reducen la carga emocional de la narrativa (verificación rápida, contra-narrativa que desactiva la emoción) y las que frenan el reenvío (reducción algorítmica de la amplificación viral).
+
+\textbf{C3. La ventaja del sembrado en hubs es cuantificable y asimétrica.} En la red libre de escala, el atacante que selecciona los 25 nodos de mayor in-grado obtiene una penetración tres veces superior a la de un atacante que siembra aleatoriamente ($0{,}518$ vs $0{,}163$). Esta asimetría es la expresión operativa del resultado de Kempe, Kleinberg y Tardos~\cite{KempeKleinbergTardos2003}: el problema de maximización de influencia tiene solución práctica en redes con \emph{hubs}, y el atacante que la explota tiene una ventaja estructural enorme. Desde la óptica defensiva, esto señala a los \emph{hubs} como los nodos cuya resiliencia individual (umbral $\theta_i$ alto) tiene mayor impacto sobre la resistencia colectiva.
+
+\textbf{C4. El fanout inicial es irrelevante una vez superado el umbral mínimo de arranque.} La variación del fanout de $0{,}2$ a $0{,}6$ no produce diferencias estadísticamente significativas en la tasa de ataque. Este resultado simplifica la modelización: no es necesario calibrar con precisión el comportamiento de publicación inicial del atacante; lo que importa es si la narrativa alcanza la masa crítica en los primeros pasos.
+
+\textbf{C5. Las métricas implementadas operacionalizan el concepto de superioridad cognitiva de la OTAN.} La tasa de ataque $a$, la resiliencia $R$, la entropía cognitiva $H$ y el tiempo de penetración $t_{50}$ traducen una definición cualitativa ---"luchar por la superioridad cognitiva"~\cite{NATOChiefScientist2025}--- en magnitudes medibles y comparables entre condiciones experimentales. La entropía cognitiva, en particular, captura el colapso de la diversidad de creencias que el \emph{Cognitive Net Assessment}~\cite{PolytechniqueCNA2026} identifica como la consecuencia más duradera de una operación cognitiva exitosa.
+
+\subsection{Trabajo Futuro}
+
+Las líneas de trabajo futuro más relevantes son:
+
+\begin{itemize}
+    \item \textbf{Agente cognitivo-emocional.} Implementar el experimento completo con \texttt{BayesianAgent}: el cerebro emocional vectorial de 11 dimensiones está diseñado pero no evaluado. Su inclusión permitiría estudiar cómo la composición emocional de la narrativa (miedo, ira, sorpresa) modula la resistencia de forma diferencial respecto al modelo de umbral escalar.
+
+    \item \textbf{Redes reales.} Descargar grafos de SNAP (ego-Facebook, Twitter) y ejecutar el mismo barrido OFAT para contrastar si las propiedades de las redes sintéticas son representativas. Las redes reales presentan estructura comunitaria y correlaciones de grado que pueden generar dinámicas de cascada cualitativamente distintas.
+
+    \item \textbf{Capa multicapa analógico-digital.} El simulador está preparado para operar con grafos multicapa pero los experimentos solo han usado capas monolayer. Activar la capa analógica (mundo pequeño) y la digital (libre de escala) en paralelo permitiría modelar cómo la desinformación cruza de una capa a otra y si la resiliencia de la capa analógica actúa como cortafuegos.
+
+    \item \textbf{Contramedidas de resiliencia.} Estudiar intervenciones defensivas cuantificando su eficacia en el mismo marco: vacunación topológica (aumentar $\theta_i$ de los \emph{hubs}), inyección de contra-narrativa (semillas con veracidad alta) y reducción algorítmica del reenvío. El simulador es directamente extensible para estos experimentos sin modificar su arquitectura.
+
+    \item \textbf{Horizonte temporal corto.} Los experimentos actuales operan en el horizonte largo plazo (estabilización de la cascada). Estudiar métricas de corto plazo ---velocidad de penetración inicial, tiempo de respuesta defensiva óptima--- requeriría análisis de las trazas a resolución fina en los primeros 5--10 pasos de simulación.
+\end{itemize}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Referencias %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliograf\'ia} \label{sec:bibliography}
+
+\printbibliography[heading=none]
+
+\end{refsection}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Anexos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+\section{T\'itulo del Anexo A}
+\textcolor{red}{Incluye cuantos anexos sean necesarios. El objetivo de los anexos es incluir informaci\'on importante pero demasiado extensa para incluir en el texto del proyecto (p.ej., gr\'aficas extra o tablas completas de experimentos/hiperpar\'ametros. Pregunta a tu director cuando no est\'es seguro.}
+
+\end{document}
+
+
+
+
