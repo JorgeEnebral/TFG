@@ -2,9 +2,10 @@
 
 ## Interacciones y Dinámicas en la Aldea Global: Modelado Matemático y Psicosocial de la Guerra Cognitiva en Redes Complejas
 
-Autor: Jorge Enebral
+**Autor:** Jorge Enebral  
+**Director:** David Martín-Corral
 
-Director: David Martín-Corral
+La memoria del trabajo se encuentra en [`Burocracia/Memoria/memoria.tex`](Burocracia/Memoria/memoria.tex).
 
 ---
 
@@ -32,36 +33,35 @@ Reinicia el terminal tras la instalación para que `uv` esté en el PATH.
 make install
 ```
 
-Esto ejecuta `uv sync`, que crea el entorno virtual en `.venv/` e instala todas las dependencias definidas en `pyproject.toml`.
+Crea el entorno virtual en `.venv/` e instala todas las dependencias de `pyproject.toml`.
 
 ### 3. Ejecutar la simulación
 
+La simulación se configura íntegramente en `src/config.py` (sin CLI). Edita ese fichero para cambiar topología, tipo de agente y parámetros, y luego:
+
 ```bash
-# Ejecución por defecto: Erdős–Rényi de 12 nodos, 40 pasos, GIF + CSV/JSON + plots
-uv run python -m src.simulation
-
-# Cambiar topología
-uv run python -m src.simulation --graph barabasi --nodes 50 --m 3
-uv run python -m src.simulation --graph watts --nodes 30 --k 4 --rewire-prob 0.1
-uv run python -m src.simulation --graph hyper --nodes 20 --hyperedges 15
-uv run python -m src.simulation --graph snap --snap-dataset ca-GrQc
-
-# Solo headless (sin GIF, sin ventana) — más rápido para experimentos
-uv run python -m src.simulation --no-gif --time 200
-
-# Ver ventana en vivo
-uv run python -m src.simulation --show
+uv run python -m src.simulation.simulation
 ```
 
-Las salidas (GIF, CSV de trazas, JSON, histograma de grado, heatmap de mensajes) se guardan en `src/data/`. Los datasets SNAP descargados se cachean en `src/data/snap/`.
+Los resultados se guardan en `data/results/{tipo_grafo}-{tipo_agente}/`.
 
-### 4. Comandos útiles del Makefile
+### 4. Ejecutar el sweep de experimentos
+
+```bash
+uv run python -m src.experiments.sweep
+```
+
+Lanza un barrido OFAT (one-factor-at-a-time) sobre cinco palancas de la narrativa, en dos topologías (scale-free y small-world), con réplicas Monte Carlo. Resultados en `data/results/sweep_v2/`.
+
+### 5. Comandos del Makefile
 
 | Comando | Descripción |
 |---|---|
 | `make install` | Crea el entorno e instala dependencias |
+| `make format` | Formatea con ruff |
+| `make check` | Ruff + mypy + pylint + complexipy |
 | `make clean` | Elimina cachés y archivos temporales |
-| `make remove_venv` | Elimina el entorno virtual (incluye `clean`) |
+| `make remove_venv` | Elimina el entorno virtual |
 
 ---
 
@@ -69,42 +69,80 @@ Las salidas (GIF, CSV de trazas, JSON, histograma de grado, heatmap de mensajes)
 
 ```
 src/
-├── agents/             # Tipos de agentes (BaseAgent + StochasticAgent)
-├── graphs/             # Topologías: random, hipergrafo, datasets SNAP
-├── data/               # Outputs (GIFs, CSVs, JSONs, plots) y caché SNAP
-├── model.py            # NetworkModel (orquesta agentes + grafo + collector)
-├── datacollector.py    # Recoge trazas (trace_id, timestep, src, tgt)
-├── visualizer.py       # NetworkAnimator, DegreeDistributionPlot, MessageHeatmap
-└── simulation.py       # Entry-point + CLI
+├── agents/
+│   ├── base.py           # BaseAgent: interfaz común + integración Mesa
+│   ├── stochastic.py     # StochasticAgent: disparo aleatorio de mensajes
+│   ├── resistant.py      # ResistantAgent: modelo Linear Threshold
+│   ├── bayesian.py       # BayesianAgent: bucle OODA con Brain inyectado
+│   └── brain.py          # EmotionalBrain: implementación emocional del Brain
+├── graphs/
+│   ├── base.py           # BaseGraph: interfaz común
+│   ├── random.py         # ErdosRenyiGraph, ScaleFreeGraph, WattsStrogatzGraph
+│   ├── snap.py           # SNAPGraph: datasets reales de Stanford SNAP
+│   ├── multilayer.py     # MultiLayerGraph: capa analógica (WS) + digital (SF/SNAP)
+│   └── trust.py          # Grafo de confianza entre nodos
+├── simulation/
+│   ├── model.py          # NetworkModel: orquesta agentes + grafo + collector
+│   ├── datacollector.py  # Recoge trazas de mensajes y eventos de adopción
+│   └── simulation.py     # Simulation: punto de entrada + exportación
+├── visualization/
+│   ├── visualizer.py     # PostSimAnimator, MessageHeatmap
+│   ├── plots.py          # analyse_graph / analyse_multilayer (métricas + figuras)
+│   └── metrics.py        # Cálculo de métricas de red
+├── experiments/
+│   └── sweep.py          # Sweep OFAT multi-topología (escenario resistente)
+├── notebooks/
+│   ├── analisis_nodo_resistente.ipynb  # Métricas de resistencia cognitiva por run
+│   ├── analisis_sweep.ipynb            # Análisis del sweep OFAT
+│   └── grafos.ipynb                    # Exploración de topologías
+├── messages.py           # Dataclass Message + enum Layer (ANALOG / DIGITAL)
+└── config.py             # Configuración centralizada (editar aquí)
 ```
 
-### Diseño
+---
 
-- **Agentes** (`src/agents/`): cada agente vive en un nodo. `BaseAgent` provee la integración con Mesa; las subclases concretas (`StochasticAgent`, futuros bots/trolls/ciudadanos) reimplementan `step()`.
-- **Grafos** (`src/graphs/`): `BaseGraph` define la interfaz; subclases para Erdős–Rényi, Barabási–Albert, Watts–Strogatz, hipergrafos y datasets reales de SNAP. El resto del código solo ve `g.graph` (un `nx.Graph`), así que cambiar topología es una línea.
-- **Modelo** (`model.py`): recibe grafo, factoría de agentes y `DataCollector`. En cada `step()`, dispara `step()` de los agentes en orden aleatorio y vuelca los mensajes emitidos al collector.
-- **DataCollector** (`datacollector.py`): acumula `Trace(trace_id, timestep, source_node, target_node)` y exporta a CSV/JSON.
-- **Visualizador** (`visualizer.py`): tres clases independientes. `NetworkAnimator` anima paso a paso; `DegreeDistributionPlot` y `MessageHeatmap` generan gráficas estáticas.
+## Configuración (`src/config.py`)
 
-### CLI
+Toda la configuración se define mediante dataclasses. Las instancias activas al final del fichero son las que usa la simulación:
 
-| Argumento | Default | Descripción |
-|---|---|---|
-| `--graph` | `erdos` | `erdos` \| `barabasi` \| `watts` \| `hyper` \| `snap` |
-| `--nodes` | `12` | Nº de nodos (no aplica a `snap`) |
-| `--edge-prob` | `0.25` | p para Erdős–Rényi |
-| `--m` | `2` | Aristas/nodo nuevo en Barabási–Albert |
-| `--k` | `4` | Vecinos en Watts–Strogatz |
-| `--rewire-prob` | `0.1` | p de recableo en Watts–Strogatz |
-| `--hyperedges` | `10` | Hiperaristas en `hyper` |
-| `--he-min` / `--he-max` | `2` / `4` | Rango de tamaño por hiperarista |
-| `--snap-dataset` | `ca-GrQc` | Dataset del catálogo SNAP |
-| `--fire-prob` | `0.20` | Probabilidad de disparo por paso |
-| `--time` | `40` | Pasos de simulación |
-| `--interval` | `500` | Intervalo entre frames (ms) |
-| `--seed` | `42` | Semilla |
-| `--no-gif` | flag | No guardar GIF |
-| `--show` | flag | Mostrar ventana en vivo |
-| `--out` | `simulation` | Basename de los ficheros de salida |
-| `--no-export` | flag | No exportar CSV/JSON |
-| `--no-plots` | flag | No generar histograma/heatmap |
+```python
+SIMULATION: SimulationConfig = SimulationConfig(days=3, steps_per_day=15, seed=42)
+GRAPH: GraphConfig = WattsConfig()          # o ScaleFreeConfig(), MultiLayerConfig()…
+AGENT: AgentConfig = AgentConfig(type="resistant")
+OUTPUT: OutputConfig = OutputConfig(export_format="json")
+```
+
+### Topologías disponibles
+
+| Clase | Tipo de grafo |
+|---|---|
+| `ErdosConfig` | Erdős–Rényi G(n, p) |
+| `ScaleFreeConfig` | Libre de escala (dirigido) |
+| `WattsConfig` | Pequeño mundo Watts–Strogatz |
+| `SNAPConfig` | Dataset real del catálogo SNAP de Stanford |
+| `MultiLayerConfig` | Bicapa: capa digital (SF/SNAP) + analógica (WS) |
+
+### Tipos de agente
+
+| Tipo | Descripción |
+|---|---|
+| `"stochastic"` | Dispara mensajes con probabilidad `fire_probability` a un vecino aleatorio |
+| `"resistant"` | Linear Threshold: acumula convicción por exposición a la narrativa hasta superar el umbral θ |
+
+El escenario principal del TFG es `"resistant"`. Permite estudiar la tasa de ataque de una campaña de desinformación en función de la topología de la red, la distribución bimodal de θ y los parámetros de la narrativa (`NarrativeConfig`).
+
+### Salida
+
+```
+data/results/{tipo_grafo}-{tipo_agente}/
+    sim/
+        graph.json                      # estructura del grafo (node-link)
+        simulation.json / .csv          # trazas de mensajes
+        simulation_adoptions.csv        # eventos de conversión (solo resistant)
+        simulation_agent_states.csv     # estado cognitivo final (solo resistant)
+    graph/
+        graph.png / histograms.png      # visualizaciones del grafo
+        metrics.json                    # métricas escalares de red
+        simulation_heatmap.png          # calor de mensajes por par nodo
+    simulation.gif                      # replay animado (si render_gif=True)
+```
