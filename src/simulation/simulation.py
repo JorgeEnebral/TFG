@@ -104,6 +104,7 @@ class Simulation:
                     gamma=nc.gamma,
                     forward_probability=nc.forward_probability,
                     narrative_veracity_threshold=nc.narrative_veracity_threshold,
+                    max_targets=agent.max_targets,
                 )
         else:
             def agent_factory(model: NetworkModel, node_id: int) -> StochasticAgent:  # type: ignore[misc]

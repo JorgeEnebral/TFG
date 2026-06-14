@@ -72,7 +72,7 @@ class NarrativeConfig:
     theta_susceptible_mu: float = 0.25
     theta_resistant_mu: float = 0.75
     theta_sigma: float = 0.10
-    forward_probability: float = 0.25
+    forward_probability: float = 0.1
 
 
 @dataclass
@@ -83,12 +83,14 @@ class AgentConfig:
         type: Clase de agente a instanciar.
         fire_probability: Probabilidad de disparo por paso (stochastic y
             resistant; en resistant es el ruido neutro ambiental).
+        max_targets: Número máximo de destinatarios por emisión en capa analógica.
         narrative: Parámetros de la narrativa (sólo si ``type == "resistant"``).
     """
 
     type: Literal["stochastic", "resistant"] = "resistant"
     fire_probability: float = 0.2
     trace_continue_probability: float = 0.50
+    max_targets: int = 5
     narrative: NarrativeConfig = field(default_factory=NarrativeConfig)
 
 
@@ -148,7 +150,7 @@ class ScaleFreeConfig:
     """
 
     type: Literal["scale_free"] = field(default="scale_free", init=False)
-    num_nodes: int = 10_000
+    num_nodes: int = 5_000
     alpha: float = 0.41
     beta: float = 0.54
     gamma: float = 0.05
@@ -170,8 +172,8 @@ class WattsConfig:
     """
 
     type: Literal["watts"] = field(default="watts", init=False)
-    num_nodes: int = 10_000
-    k: int = 6
+    num_nodes: int = 5_000
+    k: int = 10
     rewire_prob: float = 0.1
     directed: bool = False
     layer: Literal["analog", "digital"] = "analog"
@@ -229,6 +231,6 @@ GraphConfig = Union[ErdosConfig, ScaleFreeConfig, WattsConfig, SNAPConfig, Multi
 # ---------------------------------------------------------------------------
 
 SIMULATION: SimulationConfig = SimulationConfig()
-GRAPH: GraphConfig = WattsConfig()
+GRAPH: GraphConfig = ScaleFreeConfig()
 AGENT: AgentConfig = AgentConfig()
 OUTPUT: OutputConfig = OutputConfig()

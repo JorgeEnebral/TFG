@@ -6,197 +6,131 @@ Los modelos de ecuaciones diferenciales ordinarias (ODE), heredados de la epidem
 
 Los modelos estadísticos y de aprendizaje automático son potentes para predecir patrones observados, pero no son causales: describen correlaciones entre variables pasadas sin modelar el mecanismo generador. Para el objetivo de este trabajo ---medir cómo la topología y la psicología individual determinan la resiliencia cognitiva--- se requiere un modelo \emph{generativo} que permita intervenir en parámetros individuales y observar el efecto sobre la dinámica colectiva.
 
-Los juegos evolutivos y los modelos de dinámica de opinión (DeGroot, Hegselmann-Krause) capturan la actualización de creencias pero tipicamente asumen homogeneidad de la red, ausencia de contenido emocional en los mensajes, o reglas de actualización simétricas incompatibles con la dirección asimétrica de las plataformas digitales.
+Los juegos evolutivos y los modelos de dinámica de opinión (DeGroot, Hegselmann-Krause) capturan la actualización de creencias pero típicamente asumen homogeneidad de la red, ausencia de contenido emocional en los mensajes, o reglas de actualización simétricas incompatibles con la dirección asimétrica de las plataformas digitales.
 
 El ABM resuelve estas limitaciones con tres propiedades: (i) permite asignar a cada agente un umbral $\theta_i$ individual muestreado de una distribución heterogénea, condición necesaria para observar cascadas no lineales \cite{Granovetter1978}; (ii) sitúa a cada agente en un nodo del grafo y hace que la difusión dependa explícitamente de la estructura de vecindad; y (iii) permite registrar trazas causales de cada mensaje, requisito imprescindible para el análisis \emph{post hoc} de la dinámica de resistencia.
 
-El coste del ABM es computacional: cada réplica simula $N = 5\,000$ agentes durante 45 pasos de simulación, generando decenas de miles de mensajes por corrida. El diseño OFAT con 25 réplicas Monte Carlo y 700 runs totales requiere aproximadamente 30 minutos de CPU con implementación eficiente en Python/Mesa 3.x.
-
 \medskip
 
-El simulador implementa tres modelos de agente de complejidad psicológica creciente.
-Su diseño responde a una lógica de control experimental: el modelo más simple actúa como
-línea base estadística, el modelo intermedio concentra la potencia explicativa de los
-experimentos y el modelo más rico constituye una propuesta teórica para trabajo futuro.
-Los tres comparten la misma interfaz de paso de mensaje sobre el grafo, lo que permite
-intercambiarlos sin modificar la lógica de la simulación.
+Se estudian tres modelos de agente de complejidad psicológica creciente, diseñados con una lógica de control experimental: el modelo más simple actúa como línea base estadística, el modelo intermedio concentra la potencia explicativa de los experimentos y el modelo más rico aporta la mayor fidelidad cognitiva, permitiendo observar los efectos de las emociones y la cognición situacional sobre la propagación de narrativas.
 
 \paragraph{Agente estocástico (control nulo).}
-La clase \texttt{StochasticAgent} es un agente \emph{reactivo puro}: carece de estado
-cognitivo interno y no mantiene ninguna representación de las narrativas que circulan por
-la red. Su comportamiento en cada paso de la simulación se reduce a dos acciones
-independientes parametrizadas por sendas probabilidades: con probabilidad $p_{\text{fwd}}$
-reenvía el último mensaje recibido a un subconjunto aleatorio de sus seguidores en el
-grafo, y con probabilidad $p_{\text{fire}}$ genera un mensaje de ruido neutro y lo emite
-igualmente a un subconjunto aleatorio. Ambas acciones son independientes en cada paso, de
-modo que un agente puede reenviar y generar ruido simultáneamente, solo una de las dos, o
-ninguna.
+El agente estocástico es un agente \emph{reactivo puro}: carece de estado cognitivo interno y no mantiene ninguna representación de las narrativas que circulan por la red. Su comportamiento en cada paso se reduce a dos acciones independientes parametrizadas por sendas probabilidades: con probabilidad $p_{\text{fwd}}$ reenvía el último mensaje recibido a un subconjunto aleatorio de sus vecinos en el grafo, y con probabilidad $p_{\text{fire}}$ genera un mensaje de ruido neutro y lo emite igualmente a un subconjunto aleatorio. Ambas acciones son independientes en cada paso, de modo que un agente puede reenviar y generar ruido simultáneamente, solo una de las dos, o ninguna.
 
-La utilidad de este modelo no es descriptiva sino metodológica. Al eliminar toda
-psicología individual, aisla la contribución de la \emph{topología de la red} y del
-\emph{azar} en la difusión de contenidos. Cualquier diferencia observada entre las métricas
-de este agente y las de los modelos más ricos debe atribuirse, por diferencia, a los
-mecanismos cognitivos añadidos en estos últimos. Sin este control nulo sería imposible
-separar el efecto estructural del grafo del efecto de los procesos individuales de
-resistencia o persuasión.
+La utilidad de este modelo no es descriptiva sino metodológica. Al eliminar toda psicología individual, aisla la contribución de la \emph{topología de la red} y del \emph{azar} en la difusión de contenidos. Cualquier diferencia observada entre las métricas de este agente y las de los modelos más ricos debe atribuirse, por diferencia, a los mecanismos cognitivos añadidos en estos últimos. Sin este control nulo sería imposible separar el efecto estructural del grafo del efecto de los procesos individuales de resistencia o persuasión.
 
 \paragraph{Agente resistente (umbral lineal cognitivo).}
-La clase \texttt{ResistantAgent} es el modelo implementado en los experimentos de esta
-memoria. Incorpora un estado interno compuesto por dos escalares: la \emph{convicción}
-$c_i \in [0,1]$, que cuantifica en qué medida el agente $i$ ha interiorizado una narrativa
-concreta, y el \emph{umbral de resistencia} $\theta_i \in [0,1]$, que marca el nivel de
-convicción necesario para que el agente adopte dicha narrativa. El umbral $\theta_i$ se
-muestrea de una distribución bimodal que modela dos subpoblaciones —susceptible y
-resistente—; su expresión formal se detalla en el diseño de la solución
-(ecuación~\ref{eq:theta}).
+El agente resistente incorpora un estado interno compuesto por dos escalares: la \emph{convicción} $c_i \in [0,1]$, que cuantifica en qué medida el agente $i$ ha interiorizado una narrativa concreta, y el \emph{umbral de resistencia} $\theta_i \in [0,1]$, que marca el nivel de convicción necesario para que el agente adopte dicha narrativa.
 
-Un mensaje pertenece a la narrativa rastreada si y solo si su veracidad $v$ satisface
-$v \leq v_{\text{thr}}$, donde $v_{\text{thr}}$ es un umbral de veracidad global
-configurable. Cuando el agente $i$ recibe un mensaje de la narrativa procedente del
-agente $j$, actualiza su convicción según la regla:
+Un mensaje pertenece a la narrativa rastreada si y solo si su veracidad $v$ satisface $v \leq v_{\text{thr}}$, donde $v_{\text{thr}}$ es un umbral de veracidad global configurable. Cuando el agente $i$ recibe un mensaje de la narrativa procedente del agente $j$, actualiza su convicción según la regla:
 
 \begin{equation}
   c_i \;\leftarrow\; c_i + (1 - c_i)\cdot\tau_{j \to i}\cdot\lambda_m\cdot\gamma,
   \label{eq:conviction}
 \end{equation}
 
-donde $\tau_{j \to i}$ es la confianza que el agente $i$ deposita en el emisor $j$ en la
-capa del mensaje, $\lambda_m \in [0,1]$ es la \emph{carga emocional} del mensaje y
-$\gamma > 0$ es la ganancia de persuasión por exposición. La forma multiplicativa de la
-ecuación garantiza que $c_i$ permanezca acotada en $[0,1]$ y que la tasa de incremento
-decrezca conforme la convicción se aproxima a la saturación, en línea con el marco del
-modelo de umbral lineal de~\cite{KempeKleinbergTardos2003}. El agente adopta la narrativa
-en el instante en que $c_i \geq \theta_i$.
+donde $\tau_{j \to i}$ es la confianza que el agente $i$ deposita en el emisor $j$ en la capa del mensaje, $\lambda_m \in [0,1]$ es la \emph{carga emocional} del mensaje y $\gamma > 0$ es la ganancia de persuasión por exposición. La forma multiplicativa de la ecuación garantiza que $c_i$ permanezca acotada en $[0,1]$ y que la tasa de incremento decrezca conforme la convicción se aproxima a la saturación, en línea con el marco del modelo de umbral lineal de~\cite{KempeKleinbergTardos2003}. El agente adopta la narrativa en el instante en que $c_i \geq \theta_i$.
 
-La heterogeneidad de los umbrales $\{\theta_i\}$ —no su valor medio— es el factor
-determinante en la formación de cascadas de adopción: una distribución concentrada impide
-o universaliza la propagación, mientras que la bimodalidad introduce puntos de inflexión
-no lineales en la dinámica de difusión~\cite{Granovetter1978,Watts2002}. Adicionalmente,
-el hecho de que la adopción requiera exposición reiterada al mismo contenido convierte
-este proceso en un \emph{contagio complejo}, cualitativamente distinto de la difusión
-simple y más sensible a la estructura de los puentes débiles~\cite{CentolaMacy2007}.
+Los umbrales $\{\theta_i\}$ se muestrean de una \emph{distribución bimodal} que modela dos subpoblaciones diferenciadas. La elección de esta distribución responde a la estructura de opinión observada en poblaciones reales ante narrativas externas: la susceptibilidad ante la desinformación no se distribuye de forma continua y unimodal, sino que la población tiende a polarizarse en dos grupos. Un subgrupo de alta susceptibilidad concentra sus umbrales en valores bajos ($\theta \ll 0{,}5$); el subgrupo resistente sitúa los suyos en valores altos ($\theta \gg 0{,}5$). Esta bimodalidad, frente a cualquier distribución unimodal, es la condición mínima para reproducir los efectos de \emph{tipping point} no lineales que caracterizan a las cascadas de desinformación reales~\cite{Granovetter1978}: con una distribución unimodal, la dinámica converge monótonamente hacia el equilibrio una vez fijada la fracción inicial de adoptantes, sin posibilidad de cascadas súbitas. Con la distribución bimodal, en cambio, la fracción de la subpoblación susceptible determina un umbral crítico de densidad: por encima de él, la campaña alcanza masivamente a la subpoblación resistente; por debajo, se extingue. La heterogeneidad de los umbrales $\{\theta_i\}$ ---no su valor medio--- es el factor determinante en la formación de cascadas de adopción: una distribución concentrada impide o universaliza la propagación, mientras que la bimodalidad introduce puntos de inflexión no lineales en la dinámica de difusión~\cite{Granovetter1978,Watts2002}.
 
-Una vez adoptada la narrativa, el agente no se vuelve pasivo: en cada paso ulterior
-re-emite espontáneamente su última narrativa con probabilidad $f$ (período infeccioso
-superior a un único paso) y emite ruido neutro con probabilidad $p_{\text{fire}}$. Esta
-capacidad de re-emisión autónoma genera un \emph{contagio autosostenido} en el que los
-nodos adoptados actúan como fuentes secundarias, amplificando la dinámica de cascada más
-allá de la fuente original.
+El proceso de contagio generado por este modelo es de tipo \emph{complejo}: la adopción requiere exposición reiterada al mismo contenido, en contraste con los modelos de contagio simple donde una única exposición basta. Esta propiedad lo hace cualitativamente más sensible a la estructura de los puentes débiles~\cite{CentolaMacy2007}. Una vez adoptada la narrativa, el agente no se vuelve pasivo: en cada paso ulterior re-emite espontáneamente su última narrativa con probabilidad $f$ y emite ruido neutro con probabilidad $p_{\text{fire}}$, generando un \emph{contagio autosostenido} en el que los nodos adoptados actúan como fuentes secundarias que amplifican la cascada más allá de la fuente original.
 
 \paragraph{Agente cognitivo-emocional (bayesiano).}
-Las clases \texttt{BayesianAgent} y \texttt{EmotionalBrain} forman el modelo teórico más
-rico del simulador. No se incluye en los experimentos de esta memoria, pero su diseño
-ilustra una dirección de extensión naturalista bien fundamentada. El agente ejecuta el
-bucle \emph{OODA} (observar, orientar, decidir, actuar)~\cite{RushingHerschXu2026}, en el
-que la fase de orientación está mediada por un \emph{cerebro emocional} vectorial.
+El agente cognitivo-emocional es el modelo de mayor complejidad psicológica. Ejecuta el bucle \emph{OODA} (observar, orientar, decidir, actuar)~\cite{RushingHerschXu2026}, con una fase de orientación mediada por un \emph{cerebro emocional} vectorial que representa el estado afectivo del individuo (Figura~\ref{fig:cerebro}).
 
-El estado interno del cerebro es un vector $\mathbf{e} \in [0,1]^{11}$: las ocho emociones
-básicas del modelo de Plutchik~\cite{Plutchik1980} —alegría, confianza, miedo, sorpresa,
-tristeza, aversión, ira y anticipación— más tres dimensiones metacognitivas: atención,
-credulidad y autoconfianza. Cada agente posee además un vector de \emph{genética}
-$\mathbf{g} \in [0,1]^{11}$ que actúa como amplificador estable e individual de la
-respuesta emocional, modelando la variabilidad interindividual en sensibilidad afectiva.
+El estado interno es un vector $\mathbf{e} \in [0,1]^{11}$ formado por dos bloques: las ocho emociones primarias de Plutchik~\cite{Plutchik1980} (Figura~\ref{fig:plutchik}) y tres dimensiones metacognitivas. Cada agente posee además un vector de \emph{genética} $\mathbf{g} \in [0,1]^{11}$ que actúa como amplificador estable e individual de la respuesta emocional, modelando la variabilidad interindividual en sensibilidad afectiva.
 
-Al observar un mensaje, el cerebro actualiza su estado emocional siguiendo el principio
-de codificación predictiva y actualización bayesiana de creencias~\cite{Friston2010}:
-
-\begin{equation}
-  \Delta = \mathbf{m}_{\text{vec}} \cdot g_{\text{mod}} \cdot \mathbf{g}
-           \cdot \mathrm{attn} \cdot \tau \cdot \mathrm{cred} \cdot \mathrm{circ}(t),
-  \qquad
-  \mathbf{e} \;\leftarrow\; \operatorname{clip}(\mathbf{e} + \Delta,\; 0,\; 1),
-  \label{eq:brain}
-\end{equation}
-
-donde $\mathbf{m}_{\text{vec}}$ es el vector emocional del mensaje, $g_{\text{mod}}$ un
-factor de ganancia por modalidad (texto, imagen, vídeo), $\mathrm{attn}$ la atención
-actual del agente, $\tau$ la confianza en el emisor, $\mathrm{cred}$ la credulidad
-disposicional y $\mathrm{circ}(t)$ un modulador circadiano. Entre pasos se aplica un
-decaimiento exponencial por dimensión
-$e_k \leftarrow e_k \cdot 2^{-1/h_{1/2}}$,
-donde $h_{1/2}$ es la vida media emocional en pasos de simulación. El modulador circadiano
-adopta la forma
-\[
-  \mathrm{circ}(t) = \mathrm{base} + \mathrm{amp}
-  \cdot \cos\!\Bigl(\frac{2\pi(h - h_{\mathrm{pico}})}{24}\Bigr),
-\]
-con un pico de sugestionabilidad positiva en horas matinales y un pico de afecto negativo
-nocturno, en consonancia con los patrones afectivos observados en redes sociales a lo
-largo del día~\cite{GolderMacy2011}.
-
-El motivo por el que este modelo no entra en los experimentos es de orden metodológico: el
-determinismo y la trazabilidad del agente de umbral bastan para medir la resistencia a la
-desinformación de forma reproducible y controlada. El cerebro emocional vectorial introduce
-fuentes de no-determinismo adicionales —el decaimiento por dimensión, la modulación
-circadiana continua, la interacción multiplicativa de once dimensiones— que, sin un diseño
-experimental específicamente orientado a ellas, oscurecerían la atribución causal y
-elevarían el coste computacional sin una ganancia proporcional en la validez interna del
-experimento.
+\smallskip\noindent\textbf{Emociones primarias.}\quad
+Las ocho emociones de Plutchik actúan como moduladores diferenciales de la respuesta al mensaje. La \textbf{alegría} potencia el reenvío de contenido positivo y rebaja la resistencia ante información congruente con el estado afectivo. La \textbf{confianza} amplifica la credibilidad percibida del emisor, multiplicando el impacto de los mensajes procedentes de fuentes valoradas. El \textbf{miedo} activa un estado de alerta que eleva la atención disponible pero sesga la interpretación hacia amenazas, haciendo al agente especialmente sensible a narrativas de riesgo. La \textbf{sorpresa} abre transitoriamente la ventana de atención, creando un intervalo de máxima receptividad ante la primera exposición a un contenido inesperado. La \textbf{tristeza} reduce la motivación de respuesta activa pero mantiene la receptividad pasiva. La \textbf{aversión} activa el rechazo hacia fuentes o contenidos específicos, funcionando como escudo natural ante ciertos tipos de narrativa. La \textbf{ira} posee el mayor potencial viral: activa la tendencia a compartir contenido indignante, convirtiendo al agente en amplificador involuntario de narrativas que le generan rechazo moral. La \textbf{anticipación} crea una predisposición a buscar confirmación de expectativas previas, incrementando la susceptibilidad ante contenidos que validen el marco interpretativo ya activo.
 
 \begin{figure}[h!]
 \centering
-\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
-PENDIENTE (figura a generar): Esquema del cerebro emocional de 11~dimensiones del
-\texttt{EmotionalBrain}. Las 8~emociones de Plutchik aparecen en la periferia y las
-3~dimensiones metacognitivas (atención, credulidad, autoconfianza) en el centro. Flechas
-indican el flujo de actualización al recibir un mensaje: entrada $\mathbf{m}_{\text{vec}}$,
-modulación por $\mathbf{g}$, $\tau$, $\mathrm{circ}(t)$, y salida $\mathbf{e}$
-actualizado mediante la ecuación~\eqref{eq:brain}.%
-\vspace{1.5cm}}}
+\includegraphics[width=0.72\linewidth]{images/emociones.png}
+\caption{Rueda de emociones de Plutchik~\cite{Plutchik1980}. Las ocho emociones básicas
+         de la periferia ---alegría, confianza, miedo, sorpresa, tristeza, aversión, ira
+         y anticipación--- constituyen las primeras ocho dimensiones del vector de estado
+         $\mathbf{e}$ del cerebro emocional. Los tonos cálidos corresponden a emociones
+         de valencia positiva y los fríos a emociones de valencia negativa.}
+\label{fig:plutchik}
+\end{figure}
+
+\smallskip\noindent\textbf{Dimensiones metacognitivas.}\quad
+Las tres dimensiones metacognitivas regulan el proceso de procesamiento en sí, no el contenido afectivo. La \textbf{atención} $\mathrm{attn} \in [0,1]$ cuantifica la fracción de capacidad cognitiva disponible en cada paso; no es un parámetro fijo sino una variable dinámica que varía en función de los estímulos recibidos: crece cuando el agente recibe pocos mensajes de alta relevancia y decae bajo saturación informativa, modelando el efecto de \emph{sobrecarga cognitiva} documentado en entornos de alta exposición mediática. La \textbf{credulidad} $\mathrm{cred} \in [0,1]$ es la propensión disposicional a aceptar contenidos sin verificación; relativamente estable a corto plazo, refleja rasgos cognitivos y formativos del individuo. La \textbf{autoconfianza} $\mathrm{self\_conf} \in [0,1]$ representa la resistencia a revisar creencias propias: un agente con autoconfianza alta requiere mayor acumulación de evidencia contraria para actualizar su estado; uno con autoconfianza baja es más susceptible a la revisión por influencia externa.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.65\linewidth]{images/cerebro_emocional.png}
 \caption{Arquitectura del cerebro emocional vectorial del agente cognitivo-emocional.
-         El estado interno es un vector de 11~dimensiones actualizado en cada observación
-         (ecuación~\eqref{eq:brain}).}
+         Las ocho emociones de Plutchik y las tres dimensiones metacognitivas (atención, credulidad, autoconfianza) 
+         en el centro.}
 \label{fig:cerebro}
 \end{figure}
 
+Al observar un mensaje, el cerebro actualiza su estado emocional siguiendo el principio de codificación predictiva y actualización bayesiana de creencias~\cite{Friston2010}:
+
+\begin{equation}
+  \Delta_k = m_{\text{vec},k} \cdot g_{\text{mod}}
+             \cdot \mathrm{attn} \cdot \tau \cdot \mathrm{cred} \cdot \mathrm{circ}(h),
+  \qquad
+  e_k \;\leftarrow\; \operatorname{clip}(e_k + g_k\,\Delta_k,\; 0,\; 1),
+  \quad k=1,\ldots,8
+  \label{eq:brain}
+\end{equation}
+
+donde $m_{\text{vec},k}$ es la componente $k$-ésima del vector emocional del mensaje, $g_{\text{mod}}$ el factor de ganancia por modalidad (texto, imagen o vídeo), $\tau$ la confianza en el emisor y $\mathrm{circ}(h)$ el modulador circadiano. El amplificador genético $g_k \in [0,1]$ actúa en la actualización del estado, no en el cálculo del incremento $\Delta_k$: amplifica o atenúa la respuesta de cada dimensión emocional de forma diferencial según la sensibilidad individual heredada; se aplica únicamente sobre las ocho emociones primarias ($k=1,\ldots,8$), no sobre las dimensiones metacognitivas.
+
+\smallskip\noindent\textbf{Decaimiento emocional y vida media.}\quad
+Entre pasos de simulación se aplica un decaimiento exponencial autónomo por dimensión:
+\[
+  e_k \leftarrow e_k \cdot 2^{-1/h_{1/2}},
+\]
+donde $h_{1/2}$ es la \emph{vida media emocional}, expresada en pasos de simulación. Dado que cada paso representa una hora de actividad, una vida media de $h_{1/2} = 3$ pasos significa que una emoción a plena intensidad se reduce a la mitad en tres horas. Con $h_{1/2} = 15$ pasos (una jornada completa), el agente conserva el $50\,\%$ de su carga afectiva al final del día; con $h_{1/2} = 3$, las emociones decaen casi por completo antes de la jornada siguiente. Esta parametrización permite calibrar desde estados afectivos efímeros ---impactos mediáticos de corta duración--- hasta respuestas emocionales persistentes asociadas a eventos de alta carga simbólica.
+
+\smallskip\noindent\textbf{Modulador circadiano.}\quad
+El modulador $\mathrm{circ}(h)$ captura la variación rítmica de la sugestionabilidad a lo largo de la jornada activa, en consonancia con los patrones afectivos observados en redes sociales~\cite{GolderMacy2011}. El modelo considera una ventana de actividad de $15$~horas, de las $8{:}00$ a las $23{:}00$, que coincide con la ventana de uso típica de un usuario en plataformas digitales. En este intervalo, el modulador sigue un coseno con período de $12$~horas:
+
+\begin{equation}
+  \mathrm{circ}(h) = 0{,}75 + 0{,}25 \cdot \cos\!\Bigl(\frac{2\pi\,(h - 8)}{12}\Bigr),
+  \label{eq:circ}
+\end{equation}
+
+donde $h \in [8, 23]$ es la hora del día. La Figura~\ref{fig:circ} muestra la evolución del modulador a lo largo de la jornada.
+
 \begin{figure}[h!]
 \centering
-\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
-PENDIENTE (figura a generar): Rueda de emociones de Plutchik~\cite{Plutchik1980} con las
-ocho emociones básicas y sus combinaciones diádicas primarias, coloreada según valencia
-afectiva (tonos cálidos para emociones positivas, fríos para negativas). Se destacan las
-ocho dimensiones adoptadas en el modelo:
-\textit{joy, trust, fear, surprise, sadness, disgust, anger, anticipation}.%
-\vspace{1.5cm}}}
-\caption{Rueda de emociones de Plutchik~\cite{Plutchik1980}. Las ocho emociones básicas
-         de la periferia constituyen las primeras ocho dimensiones del vector de estado
-         $\mathbf{e}$ del \texttt{EmotionalBrain}.}
-\label{fig:plutchik}
+\includegraphics[width=0.85\linewidth]{images/modulador_circadiano.png}
+\caption{Modulador circadiano $\mathrm{circ}(h)$ a lo largo de la jornada activa ($8{:}00$--$23{:}00$).
+         Picos de máxima sugestionabilidad ($\mathrm{circ}=1{,}0$) a las $8{:}00$ y $20{:}00$;
+         mínimo ($\mathrm{circ}=0{,}50$) a las $14{:}00$.
+         Base $= 0{,}75$, amplitud $= 0{,}25$, período coseno de $12$~horas
+         (ecuación~\eqref{eq:circ}).}
+\label{fig:circ}
 \end{figure}
+
+Con un período de $12$~horas, la función coseno completa $1{,}25$ ciclos dentro de la ventana activa. El primer pico de \emph{máxima sugestionabilidad} se sitúa a las $8{:}00$ ($\mathrm{circ} = 1{,}0$): al inicio de la jornada los mecanismos de evaluación crítica aún no han alcanzado su plena activación tras el despertar, lo que eleva la receptividad ante mensajes externos~\cite{GolderMacy2011}. El mínimo de sugestionabilidad se alcanza a las $14{:}00$ ($\mathrm{circ} = 0{,}50$), en la franja de máxima alerta cognitiva del mediodía cuando la activación atencional acumulada refuerza los mecanismos de evaluación crítica y reduce la apertura perceptual ante estímulos externos. Un segundo pico emerge a las $20{:}00$ ($\mathrm{circ} = 1{,}0$), asociado al descenso de la guardia cognitiva propio del período vespertino tardío, cuando la fatiga acumulada durante la jornada relaja los filtros de evaluación crítica. El valor base $0{,}75$ asegura que incluso en el mínimo de las $14{:}00$ el agente mantiene capacidad de procesamiento activa; la amplitud $0{,}25$ refleja la magnitud del efecto circadiano sobre la sugestionabilidad, coherente con la literatura que estima la variación diurna entre un $20\,\%$ y un $30\,\%$~\cite{GolderMacy2011}.
 
 \begin{table}[h!]
 \centering
 \small
-\caption{Comparativa de los tres modelos de agente implementados en el simulador.}
+\caption{Comparativa de los tres modelos de agente de complejidad psicológica creciente.}
 \label{tab:agentes}
-\begin{tabular}{@{}p{3cm} p{2.7cm} p{4.1cm} p{1.6cm} p{2cm}@{}}
+\begin{tabular}{@{}p{3.2cm} p{3cm} p{8cm}@{}}
 \toprule
 \textbf{Modelo} &
 \textbf{Estado interno} &
-\textbf{Regla de decisión} &
-\textbf{Determinista} &
-\textbf{En experimentos} \\
+\textbf{Regla de decisión} \\
 \midrule
 Estocástico
-(\texttt{StochasticAgent})
   & Ninguno
-  & Reenvío y ruido con probabilidades $p_{\text{fwd}}$, $p_{\text{fire}}$
-  & No
-  & Sí (control) \\
+  & Reenvío y ruido con probabilidades $p_{\text{fwd}}$, $p_{\text{fire}}$ \\
 \addlinespace
 Resistente
-(\texttt{ResistantAgent})
   & $c_i,\,\theta_i \in [0,1]$
-  & Umbral lineal: adoptar si $c_i \geq \theta_i$ \cite{KempeKleinbergTardos2003,Granovetter1978}
-  & Sí
-  & Sí \\
+  & Umbral lineal: adoptar si $c_i \geq \theta_i$ \cite{KempeKleinbergTardos2003,Granovetter1978} \\
 \addlinespace
 Cognitivo-emocional
-(\texttt{BayesianAgent})
   & $\mathbf{e},\,\mathbf{g} \in [0,1]^{11}$
-  & Actualización bayesiana del vector emocional \cite{Friston2010,Plutchik1980}
-  & No
-  & No \\
+  & Actualización bayesiana del vector emocional \cite{Friston2010,Plutchik1980} \\
 \bottomrule
 \end{tabular}
 \end{table}

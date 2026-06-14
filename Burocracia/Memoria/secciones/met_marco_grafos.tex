@@ -1,10 +1,10 @@
 %! Subsubsección: Grafos: la sociedad como red
 % Cuerpo sin encabezado de sección.
 
-Una red social puede representarse formalmente como un grafo $G = (V, E)$, donde el conjunto de nodos $V$ corresponde a los individuos que participan en el sistema y el conjunto de aristas $E \subseteq V \times V$ representa los vínculos entre ellos. Según la naturaleza de dichos vínculos, el grafo puede ser \emph{no dirigido} (relaciones simétricas de amistad o conocimiento mutuo), \emph{dirigido} (relaciones asimétricas como el seguimiento en redes digitales), \emph{ponderado} (cuando se asigna un valor numérico de confianza o intensidad a cada arista) o \emph{multicapa} (cuando coexisten distintos tipos de red sobre el mismo conjunto de individuos). Esta representación unificada permite aplicar al estudio de la influencia social el aparato matemático de la teoría de grafos y la ciencia de redes \cite{AlbertBarabasi2002}.
+Una red social puede representarse formalmente como un grafo $G = (V, E)$, donde el conjunto de nodos $V$ corresponde a los individuos que participan en el sistema y el conjunto de aristas $E \subseteq V \times V$ representa los vínculos entre ellos. La orientación del grafo depende de la capa que se modele: los vínculos presenciales son típicamente \emph{no dirigidos} (relaciones simétricas de conocimiento mutuo), mientras que los digitales son \emph{dirigidos} (el seguimiento en redes sociales es asimétrico por naturaleza). Ambas variantes pueden ser \emph{ponderadas} —cuando se asigna a cada arista un valor numérico que refleja la intensidad o confianza del vínculo— y cualquiera de estas topologías puede aparecer como capa dentro de una red \emph{multicapa}, en la que distintos tipos de relación coexisten sobre el mismo conjunto de individuos. Esta representación unificada permite aplicar al estudio de la influencia social el aparato matemático de la teoría de grafos y la ciencia de redes \cite{AlbertBarabasi2002}.
 
 \paragraph{Métricas estructurales.}
-La caracterización cuantitativa de una red requiere el cálculo de un conjunto de métricas estructurales que el módulo \texttt{compute\_graph\_metrics} del proyecto evalúa sobre cada topología generada. El \emph{grado} $k_i$ de un nodo $i$ es el número de aristas que lo inciden; en redes dirigidas se distinguen el grado de entrada $k_i^{\text{in}}$ y el de salida $k_i^{\text{out}}$. La distribución de grado $P(k)$ describe la fracción de nodos con grado $k$ y constituye la huella estructural más característica de cada modelo de red. El \emph{coeficiente de clustering} $C_i$ mide la densidad de triángulos en el vecindario de $i$, mientras que la \emph{longitud media de camino} $\langle \ell \rangle$ refleja la eficiencia global de la propagación de información a través de la red. Las \emph{centralidades} de intermediación, de vector propio y PageRank cuantifican, respectivamente, el control de flujo, la influencia transitiva y la notoriedad de cada nodo. La \emph{asortatividad} indica si los nodos de grado elevado tienden a conectarse entre sí o con nodos periféricos.
+La caracterización cuantitativa de una red requiere un conjunto de métricas estructurales que capturan las propiedades de la topología relevantes para la dinámica de propagación. El \emph{grado} $k_i$ de un nodo $i$ es el número de aristas que lo inciden; en redes dirigidas se distinguen grado de entrada $k_i^{\text{in}}$ y grado de salida $k_i^{\text{out}}$. La \emph{distribución de grado} $P(k)$ describe la fracción de nodos con grado $k$: constituye la huella estructural más característica de cada modelo de red y determina la heterogeneidad del sistema, la presencia de hubs y la vulnerabilidad ante intervenciones dirigidas. El \emph{coeficiente de clustering} $C_i$ mide la densidad de triángulos en el vecindario de $i$ y cuantifica en qué medida los contactos de un nodo también se conocen entre sí; un clustering elevado indica una estructura comunitaria que favorece el refuerzo local de creencias. La \emph{longitud media de camino} $\langle \ell \rangle$ refleja la eficiencia global de la propagación: redes con $\langle \ell \rangle$ pequeña permiten que una narrativa alcance nodos distantes en muy pocos saltos. Las \emph{centralidades} de intermediación, de vector propio y PageRank cuantifican, respectivamente, el control del flujo de información entre comunidades, la influencia transitiva acumulada y la notoriedad de cada nodo en función de la relevancia de quienes apuntan a él. La \emph{asortatividad} indica si los nodos de grado elevado tienden a conectarse entre sí o con nodos periféricos, lo que afecta tanto a la velocidad de contagio como a la robustez de la red ante la eliminación de nodos clave.
 
 Cuando la distribución de grado sigue una \emph{ley de potencias}, se cumple
 
@@ -19,85 +19,71 @@ donde el exponente $\gamma$ se estima mediante el estimador de máxima verosimil
   \hat{\gamma} = 1 + n \left[ \sum_{i=1}^{n} \ln\!\left( \frac{k_i}{k_{\min} - \tfrac{1}{2}} \right) \right]^{-1},
 \]
 
-con $k_{\min}$ el grado mínimo a partir del cual se ajusta la ley y $n$ el número de nodos con $k_i \geq k_{\min}$. Este estimador es asintóticamente insesgado y se utiliza en el código para caracterizar automáticamente las redes de escala libre generadas.
+con $k_{\min}$ el grado mínimo a partir del cual se ajusta la ley y $n$ el número de nodos con $k_i \geq k_{\min}$.
 
-\paragraph{Topologías implementadas.}
-El simulador incorpora tres modelos de red canónicos que sirven de base a todas las configuraciones de experimento.
+\paragraph{Topologías estudiadas.}
+Se estudian tres modelos de red canónicos que sirven de marco de referencia para el análisis de la propagación de narrativas.
 
-El modelo de \emph{Erdős–Rényi} $\mathcal{G}(n, p)$ \cite{ErdosRenyi1960} construye el grafo conectando cada par de nodos de forma independiente con probabilidad $p$. El grado de cada nodo sigue una distribución de Poisson con media $\langle k \rangle = (n-1)p$. Esta topología se usa exclusivamente como \emph{baseline} aleatorio: carece de hubs, presenta clustering bajo y no reproduce las heterogeneidades observadas en redes humanas reales.
+El modelo de \emph{Erdős–Rényi} $\mathcal{G}(n, p)$ \cite{ErdosRenyi1960} construye el grafo conectando cada par de nodos de forma independiente con probabilidad $p$. El grado de cada nodo sigue una distribución de Poisson con media $\langle k \rangle = (n-1)p$. Esta topología se emplea como \emph{baseline} aleatorio: carece de hubs, presenta clustering bajo y no reproduce las heterogeneidades observadas en redes humanas reales; en consecuencia, subestima sistemáticamente el alcance de una campaña informativa.
 
-El modelo \emph{libre de escala} \cite{BarabasiAlbert1999, AlbertBarabasi2002} se basa en el mecanismo de adjunción preferencial: los nodos nuevos se enlazan con mayor probabilidad a nodos ya bien conectados, lo que genera la distribución de grado~\eqref{eq:powerlaw} con exponente $\gamma \in [2, 3]$ y una minoría de nodos con grado excepcional (\emph{hubs}). En el código se utiliza la generalización dirigida de Bollobás et al.\ \cite{Bollobas2003}, implementada mediante \texttt{nx.scale\_free\_graph}, que introduce tres parámetros de mezcla $\alpha + \beta + \gamma = 1$: $\alpha$ controla la probabilidad de añadir un nodo nuevo con arista de entrada, $\beta$ la de añadir una arista entre nodos existentes, y $\gamma$ la de añadir un nodo nuevo con arista de salida; los sesgos $\delta_{\text{in}}$ y $\delta_{\text{out}}$ modulan la preferencia de adjunción. Esta topología modela la \emph{red digital}: la distancia media entre usuarios en Facebook se aproxima a 3{,}5 saltos \cite{Backstrom2012}, confirmando el efecto del mundo pequeño inducido por los hubs.
+El modelo \emph{libre de escala} \cite{BarabasiAlbert1999, AlbertBarabasi2002} se basa en el mecanismo de adjunción preferencial: los nodos nuevos se enlazan con mayor probabilidad a nodos ya bien conectados, lo que genera la distribución de grado~\eqref{eq:powerlaw}. El valor del exponente $\gamma$ determina el régimen cualitativo de la red y tiene consecuencias directas sobre la dinámica de propagación:
+\begin{itemize}
+  \item $\gamma < 2$: el grado medio diverge con el tamaño $n$; la red queda dominada por uno o muy pocos super-hubs que absorben casi toda la conectividad. La propagación es extremadamente rápida, pero la red es frágil: la eliminación de esos nodos centrales la desintegra.
+  \item $\gamma > 3$: los hubs apenas se distinguen del nodo promedio y la distribución converge a un comportamiento próximo al de Erdős–Rényi. La ley de potencias existe formalmente, pero sin consecuencias dinámicas apreciables sobre la velocidad de contagio.
+  \item $2 < \gamma < 3$ (rango empírico): el grado medio es finito, pero la varianza diverge. Coexisten hubs con $k \gg \langle k \rangle$ y una mayoría de nodos con conectividad modesta. Las redes sociales digitales se sitúan en este intervalo —Twitter y Facebook presentan $\gamma \approx 2{,}1$–$2{,}5$—, que combina el efecto de mundo pequeño inducido por los hubs con una robustez moderada ante fallos aleatorios.
+\end{itemize}
+La generalización dirigida de Bollobás et al.\ \cite{Bollobas2003} extiende el modelo al caso asimétrico, produciendo distribuciones de grado de entrada y de salida independientes, lo que la convierte en la variante más adecuada para modelar plataformas digitales donde seguir a alguien no implica reciprocidad. La distancia media entre usuarios en Facebook se aproxima a $3{,}5$ saltos \cite{Backstrom2012}, confirmando el efecto de mundo pequeño inducido por los hubs incluso a escala de miles de millones de nodos. En cambio, en la red libre de escala de la simulación ---$n=10\,000$ nodos, elegida para homologar la comparativa entre topologías--- la baja densidad resultante ($\bar{k}_{\mathrm{in}}=1{,}87$) eleva el camino medio a $\ell=4{,}32$, el más largo de las topologías sintéticas; el efecto de mundo pequeño emerge progresivamente al crecer $n$ y no es apreciable en instancias de pequeño tamaño.
 
-El modelo de \emph{Watts–Strogatz} \cite{WattsStrogatz1998} parte de un anillo regular donde cada nodo está conectado a sus $k$ vecinos más próximos y, posteriormente, recablea cada arista con probabilidad $p$. Para valores intermedios de $p$ se obtiene simultáneamente un coeficiente de clustering elevado (herencia de la estructura regular) y caminos medios cortos proporcionales a $\log n$ (consecuencia del recableado aleatorio). Esta topología modela la \emph{red analógica}, cuya estructura refleja la organización comunitaria de las relaciones presenciales.
+El modelo de \emph{Watts–Strogatz} \cite{WattsStrogatz1998} parte de un anillo regular donde cada nodo está conectado a sus $k$ vecinos más próximos y, posteriormente, recablea cada arista con probabilidad $p$. Para valores intermedios de $p$ se obtiene simultáneamente un coeficiente de clustering elevado (herencia de la estructura regular) y caminos medios cortos proporcionales a $\log n$ (consecuencia del recableado aleatorio). Esta combinación de alta cohesión local y accesibilidad global caracteriza a las redes de relaciones presenciales y la convierte en el modelo natural para la \emph{capa analógica}.
 
-La figura~\ref{fig:pk} compara las distribuciones de grado de los tres modelos en escala logarítmica.
-
-\begin{figure}[h!]
-  \centering
-  \fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
-    PENDIENTE (figura a generar): Distribuciones de grado $P(k)$ en escala log-log para los tres modelos de red implementados: Erdős–Rényi (distribución de Poisson, caída exponencial), libre de escala (recta de pendiente $-\gamma$, hubs visibles) y Watts–Strogatz (distribución acotada con pico estrecho). Ejes: $\log k$ frente a $\log P(k)$.
-    \vspace{1.5cm}}}
-  \caption{Distribuciones de grado $P(k)$ en escala log-log para los modelos Erdős–Rényi, libre de escala (Barabási–Albert) y Watts–Strogatz. La recta de pendiente $-\gamma$ en la red libre de escala evidencia el comportamiento de ley de potencias~\eqref{eq:powerlaw}.}
-  \label{fig:pk}
-\end{figure}
-
-\paragraph{Confianza por capa.}
-La confianza entre dos agentes no es homogénea ni estática, sino que depende de la capa de red en la que se establece el vínculo. El módulo \texttt{src/graphs/trust.py} implementa dos modelos diferenciados.
-
-En la \emph{capa analógica}, la confianza se asigna conforme al modelo de Dunbar \cite{Dunbar1992}: la distancia circular entre dos nodos $u$ y $v$ en el anillo de Watts–Strogatz se define como $d = \min(|u - v|,\, n - |u - v|)$, y el valor de confianza se asigna en función de la banda de Dunbar a la que pertenece dicha distancia — núcleo íntimo ($\leq 5$), círculo cercano ($\leq 15$), amigos ($\leq 50$) o conocidos ($\leq 150$) —, de modo que a mayor distancia corresponde menor confianza. Esta graduación reproduce la estructura jerárquica observada empíricamente en las redes de relación humana presencial.
-
-En la \emph{capa digital}, la confianza se modela mediante una distribución log-normal cuya media y varianza dependen de las propiedades estructurales de emisor y receptor:
-
-\begin{equation}
-  \tau^{\text{dig}}_{a \to b} = \mathrm{clip}\!\left(\,\mathcal{N}(\mu, \sigma) + 0{,}04 \cdot \min(c_{ab}, 5),\; 0,\; 1\right),
-  \label{eq:digital-trust}
-\end{equation}
-
-donde $\mu = 1 / (1 + 0{,}005 \cdot k_b^{\text{in}})$, $\sigma = 0{,}05 + 0{,}003 \cdot k_a^{\text{out}}$, $k_b^{\text{in}}$ es el in-grado del receptor $b$, $k_a^{\text{out}}$ el out-grado del emisor $a$, y $c_{ab}$ el número de vecinos comunes entre $a$ y $b$. La interpretación es directa: los hubs con muchos seguidores generan una confianza por contacto decreciente (efecto de \emph{saturación}), mientras que compartir vecinos introduce un pequeño bono de credibilidad basado en el principio de cierre triádico.
-
-\paragraph{Redes multicapa.}
-Cuando se desea modelar simultáneamente las interacciones analógicas y digitales de una misma población, el formalismo de redes multicapa \cite{Kivela2014, DeDomenico2013} proporciona el marco apropiado. Una red multicapa se define formalmente como la tupla $\mathcal{M} = (V_\mathcal{M}, E_\mathcal{M}, V, L)$, donde $L = \{L_1, \ldots, L_d\}$ es el conjunto de capas, $V_\mathcal{M} \subseteq V \times L$ el conjunto de nodos-capa y $E_\mathcal{M}$ incluye tanto aristas \emph{intra-capa} (dentro de una misma capa) como aristas \emph{inter-capa} (entre capas).
-
-En el simulador, la clase \texttt{MultiLayerGraph} construye un \texttt{MultiDiGraph} de NetworkX con dos capas: la digital (libre de escala, prioritaria) y la analógica (Watts–Strogatz). Se mantiene el invariante de que ningún par $\{u, v\}$ aparece simultáneamente en ambas capas, evitando duplicidades que distorsionarían la dinámica de propagación. La \emph{participación} de un nodo en las distintas capas se cuantifica mediante el índice
-
-\begin{equation}
-  P_i = 1 - \sum_{\ell} \left( \frac{k_{i,\ell}}{k_i} \right)^2,
-  \label{eq:participacion}
-\end{equation}
-
-donde $k_{i,\ell}$ es el grado del nodo $i$ en la capa $\ell$ y $k_i = \sum_\ell k_{i,\ell}$ su grado total. Un valor $P_i \approx 1$ indica participación equilibrada entre capas, mientras que $P_i \approx 0$ señala que toda la actividad del nodo se concentra en una única capa. Este índice, junto con la correlación de grado entre capas, permite diagnosticar la dualidad analógico-digital de cada agente.
-
-\begin{figure}[h!]
-  \centering
-  \fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm}
-    PENDIENTE (figura a generar): Esquema de la red multicapa analógico-digital. Se muestran dos planos paralelos: el superior representa la capa digital (libre de escala, con hubs bien visibles) y el inferior la capa analógica (Watts–Strogatz, estructura de anillo con conexiones locales). Las aristas inter-capa (punteadas verticales) conectan el mismo nodo en ambas capas. El código de colores distingue aristas intra-capa analógica (azul), intra-capa digital (naranja) e inter-capa (gris).
-    \vspace{1.5cm}}}
-  \caption{Arquitectura de la red multicapa analógico-digital. La capa superior (digital, libre de escala) y la capa inferior (analógica, Watts–Strogatz) comparten el mismo conjunto de nodos $V$; las aristas verticales representan la correspondencia inter-capa.}
-  \label{fig:multicapa}
-\end{figure}
-
-\paragraph{Redes reales (SNAP).}
-Además de las topologías sintéticas, el simulador permite cargar redes empíricas del repositorio SNAP \cite{LeskovecKrevl2014}. Los conjuntos de datos utilizados — redes de ego de Facebook y Twitter, y la red de confianza de Epinions — exhiben los sesgos estructurales característicos de las redes humanas: distribución de grado de cola pesada, alto clustering local y efecto de mundo pequeño. La clase \texttt{SNAPGraph} se encarga de descargar y adaptar estos datos al formato interno del simulador; cuando el grafo original es no dirigido, la orientación de las aristas se asigna de forma probabilística ponderada por el grado de los nodos extremos, aproximando la asimetría típica de las relaciones de influencia en entornos digitales.
-
-\paragraph{Comparativa analógica-digital.}
-La tabla~\ref{tab:analog-digital} resume las diferencias estructurales más relevantes entre la red analógica y la digital en el contexto del simulador.
+La tabla~\ref{tab:analog-digital} resume las diferencias estructurales más relevantes entre la red analógica y la digital.
 
 \begin{table}[h!]
-  \caption{Comparativa estructural entre la red analógica (Watts–Strogatz) y la red digital (libre de escala) en el simulador.}
+  \caption{Comparativa estructural entre la red analógica (Watts–Strogatz) y la red digital (libre de escala).}
   \label{tab:analog-digital}
   \centering
   \begin{tabular}{@{}l p{5cm} p{5.8cm}@{}}
     \toprule
     \textbf{Dimensión} & \textbf{Red analógica} & \textbf{Red digital} \\
     \midrule
-    Modelo de base & Watts–Strogatz & Barabási–Albert dirigido \cite{Bollobas2003} \\
+    Modelo de base      & Watts–Strogatz & Barabási–Albert dirigido \cite{Bollobas2003} \\
+    Orientación         & No dirigida (simétrica) & Dirigida (asimétrica) \\
     Tamaño de la vecindad & Limitado (bandas de Dunbar \cite{Dunbar1992}) & Ilimitado; hubs con $k \gg \langle k \rangle$ \\
-    Coste de vínculo & Alto (tiempo, proximidad física) & Bajo (un clic, coste casi nulo) \\
+    Coste de vínculo    & Alto (tiempo, proximidad física) & Bajo (un clic, coste casi nulo) \\
     Distribución de grado & Acotada, pico estrecho & Ley de potencias, $\gamma \in [2,3]$~\eqref{eq:powerlaw} \\
-    Distancia media $\langle \ell \rangle$ & $\mathcal{O}(\log n)$, relativamente larga & Muy corta ($\approx 3{,}5$ saltos \cite{Backstrom2012}) \\
+    Distancia media $\langle \ell \rangle$ & $\mathcal{O}(\log n)$, relativamente larga & Corta a gran escala ($\approx 3{,}5$ saltos en Facebook \cite{Backstrom2012}); en la simulación ($n{=}10\,000$), $\ell{=}4{,}32$ por baja densidad \mbox{(véase Tabla~\ref{tab:topologias})} \\
     Coeficiente de clustering & Alto (estructura comunitaria) & Bajo (hubs con vecindarios dispersos) \\
     Mediación algorítmica & Ninguna & Presente (recomendaciones, \emph{trending}) \\
     Confianza por arista & Según bandas de Dunbar & Log-normal modulada por grado~\eqref{eq:digital-trust} \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+\paragraph{Confianza por capa.}
+La confianza entre dos agentes no es homogénea ni estática: depende de la capa de red en la que se establece el vínculo, y los datos empíricos imponen requerimientos cualitativamente distintos para cada una.
+
+En la \emph{capa analógica}, las relaciones presenciales presentan una estructura jerárquica bien documentada: los individuos organizan sus contactos en círculos de proximidad social con tamaños y frecuencias de interacción característicos. El modelo de Dunbar \cite{Dunbar1992} identifica cuatro bandas concéntricas —núcleo íntimo ($\leq 5$ personas), círculo cercano ($\leq 15$), amigos ($\leq 50$) y conocidos ($\leq 150$)— en las que la intensidad y frecuencia del contacto decrecen progresivamente con la distancia social $d(u,v)$. La confianza en esta capa se asigna en función de la banda a la que pertenece la distancia entre dos nodos: los vínculos del núcleo íntimo reciben el valor máximo, mientras que los meros conocidos reciben el mínimo. Esta graduación reproduce la estructura jerárquica observada empíricamente en las redes de relación humana presencial.
+
+En la \emph{capa digital}, las relaciones de seguimiento son asimétricas y se establecen sin coste, lo que invalida la jerarquía de Dunbar. Los datos empíricos evidencian dos efectos diferenciados: (i)~los nodos con muchos seguidores generan una confianza por contacto decreciente ---la credibilidad percibida se diluye a medida que el alcance del emisor crece, efecto denominado de \emph{saturación}---; (ii)~compartir vecinos comunes entre emisor y receptor introduce un bono de credibilidad basado en el principio de cierre triádico. Capturando ambos efectos, la confianza en la capa digital se modela mediante una distribución log-normal cuya media y varianza dependen de las propiedades estructurales del par emisor-receptor:
+
+\begin{equation}
+  \tau^{\text{dig}}_{a \to b} = \mathrm{clip}\!\left(\,\mathcal{N}(\mu, \sigma) + 0{,}04 \cdot \min(c_{ab}, 5),\; 0,\; 1\right),
+  \label{eq:digital-trust}
+\end{equation}
+
+donde $\mu = 1 / (1 + 0{,}005 \cdot k_b^{\text{in}})$, $\sigma = 0{,}05 + 0{,}003 \cdot k_a^{\text{out}}$, $k_b^{\text{in}}$ es el in-grado del receptor $b$, $k_a^{\text{out}}$ el out-grado del emisor $a$, y $c_{ab}$ el número de vecinos comunes entre $a$ y $b$.
+
+\paragraph{Redes multicapa.}
+Cuando se desea modelar simultáneamente las interacciones analógicas y digitales de una misma población, el formalismo de redes multicapa \cite{Kivela2014, DeDomenico2013} proporciona el marco apropiado. Una red multicapa se define formalmente como la tupla $\mathcal{M} = (V_\mathcal{M}, E_\mathcal{M}, V, L)$, donde $L = \{L_1, \ldots, L_d\}$ es el conjunto de capas, $V_\mathcal{M} \subseteq V \times L$ el conjunto de nodos-capa y $E_\mathcal{M}$ incluye tanto aristas \emph{intra-capa} (dentro de una misma capa) como aristas \emph{inter-capa} (entre capas).
+
+En este modelo se consideran dos capas sobre el mismo conjunto de nodos $V$: la \emph{capa digital} (libre de escala, dirigida) y la \emph{capa analógica} (Watts–Strogatz, no dirigida). Los nodos representan únicamente ciudadanos reales; la capa digital no incluye bots ni actores sintéticos. Cada nodo es el mismo individuo en ambas capas, con roles complementarios según el canal de comunicación:
+
+\begin{itemize}
+  \item \textbf{Flujo digital $\to$ analógico}: un agente recibe contenido en la capa digital ---por ejemplo, un vídeo viral o una noticia de un hub---, lo procesa internamente y, si decide compartirlo, lo transmite a sus contactos de confianza en la capa analógica. La intensidad de ese reenvío es proporcional a la confianza que le merece cada contacto presencial: comparte más con quienes mantiene vínculos más fuertes.
+  \item \textbf{Flujo analógico $\to$ digital}: un agente puede recibir información de su entorno presencial ---un rumor transmitido cara a cara--- y amplificarla publicándola en la capa digital, donde puede alcanzar audiencias mucho mayores gracias a la estructura de hubs.
+\end{itemize}
+
+Esta dualidad permite modelar el ciclo completo de una operación informativa: la narrativa se inyecta en la capa digital (alta velocidad, alto alcance), atraviesa la frontera inter-capa a través de los agentes más activos y se consolida en la capa analógica (alta confianza, mayor persistencia cognitiva), desde donde puede volver a amplificarse digitalmente en sucesivas iteraciones.
+
+\paragraph{Redes reales (SNAP).}
+Además de las topologías sintéticas, se incorporan redes empíricas del repositorio SNAP \cite{LeskovecKrevl2014}. Los conjuntos de datos utilizados ---redes de ego de Facebook y Twitter, y la red de confianza de Epinions--- exhiben los sesgos estructurales característicos de las redes humanas: distribución de grado de cola pesada, alto clustering local y efecto de mundo pequeño. Cuando el grafo original es no dirigido, la orientación de las aristas se asigna de forma probabilística ponderada por el grado de los nodos extremos, aproximando la asimetría típica de las relaciones de influencia en entornos digitales.

@@ -70,13 +70,13 @@ BASE_NARRATIVE: NarrativeConfig = NarrativeConfig(
     theta_susceptible_mu=0.30,
     theta_resistant_mu=0.70,
     theta_sigma=0.10,
-    forward_probability=0.25,
+    forward_probability=0.1,
 )
 
 # Topologías a comparar
 TOPOLOGIES: dict[str, GraphConfig] = {
     "scale_free": ScaleFreeConfig(num_nodes=NUM_NODES, layer="digital"),
-    "small_world": WattsConfig(num_nodes=NUM_NODES, k=6, rewire_prob=0.1, layer="analog"),
+    "small_world": WattsConfig(num_nodes=NUM_NODES, k=10, rewire_prob=0.1, layer="analog"),
 }
 
 # Factores OFAT: (nombre_campo_NarrativeConfig, niveles)
@@ -86,7 +86,7 @@ FACTORS: list[tuple[str, list[object]]] = [
     ("seed_strategy",        ["hubs", "random"]),
     ("seed_fanout",          [0.2, 0.4, 0.6]),
     ("k_seeds",              [0.001, 0.005, 0.01]),  # fracciones → se convierten a int
-    ("forward_probability",  [0.1, 0.25, 0.4]),
+    ("forward_probability",  [0.05, 0.1, 0.15]),
     ("susceptible_fraction", [0.25, 0.5, 0.75]),
     ("emotional_load",       [0.4, 0.6, 0.8]),
 ]

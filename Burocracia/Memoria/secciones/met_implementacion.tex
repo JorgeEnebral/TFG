@@ -1,21 +1,174 @@
-El simulador está desarrollado íntegramente en Python 3.13 \cite{PythonLang}, apoyándose en tres dependencias principales. El framework de modelado basado en agentes \texttt{mesa} 3.x \cite{Mesa3} aporta el planificador de pasos discretos, la clase base \texttt{Agent} y el \texttt{AgentSet}, que permiten activar colectivamente subconjuntos de agentes sin bucles explícitos. La librería \texttt{networkx} \cite{NetworkX2008} proporciona las estructuras de grafo, los algoritmos estándar (grado, betweenness, componentes conexas) y la carga de redes reales en formato SNAP. Adicionalmente, \texttt{tqdm} instrumenta las barras de progreso durante los barridos de hiperparámetros, y \texttt{matplotlib} se emplea para la generación de gráficas estáticas y GIFs de \emph{replay}. La combinación de \texttt{mesa} y \texttt{networkx} resulta natural para este dominio: el primero gestiona la lógica de agentes y la recogida de trazas, mientras el segundo actúa como sustrato topológico intercambiable.
+Esta sección describe los componentes efectivamente programados: la jerarquía de grafos y la de agentes, con sus parámetros de configuración y las topologías generadas. El diseño sigue el patrón de \emph{herencia + template method}: una clase base abstracta define la interfaz y el pipeline de construcción, y cada subclase concreta implementa únicamente la topología o la psicología específica.
 
-La arquitectura del código está organizada en módulos cohesivos e independientes del tipo concreto de grafo o de agente (véase la figura~\ref{fig:modulos}). El módulo \texttt{graphs/} encapsula las distintas topologías —Erdős–Rényi, libre de escala (Barabási–Albert), Watts–Strogatz, redes multicapa y grafos SNAP— junto con las funciones que asignan niveles de confianza por capa. El módulo \texttt{agents/} contiene los modelos de agente: el agente base determinista, el agente estocástico con reenvío probabilístico, el agente resistente con umbral de rechazo, y el agente con cerebro emocional y actualización bayesiana de creencias. El módulo \texttt{simulation/} aloja el modelo Mesa \texttt{NetworkModel} y el \texttt{DataCollector} responsable de registrar cada mensaje y adopción. El módulo \texttt{visualization/} agrupa las funciones de cálculo de métricas de grafo, la generación de gráficas de análisis y el \emph{replay} animado de una traza. Por último, el módulo \texttt{experiments/} implementa los barridos de hiperparámetros mediante ejecuciones en paralelo. El punto de extensión central es la \emph{agent\_factory}: \texttt{NetworkModel} recibe una función que construye el agente de cada nodo, de modo que cambiar el modelo de comportamiento no requiere modificar la lógica de simulación.
+%%----------------------------------------------------------------------
+\subsubsection{Grafos: jerarquía de implementación}
+%%----------------------------------------------------------------------
 
-\begin{figure}[h!]
-\centering
-\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm} PENDIENTE (figura a generar): diagrama de módulos y dependencias entre \texttt{graphs/}, \texttt{agents/}, \texttt{simulation/}, \texttt{visualization/} y \texttt{experiments/}\vspace{1.5cm}}}
-\caption{Arquitectura modular del simulador: módulos principales y sus dependencias.}
-\label{fig:modulos}
+La librería seleccionada para la representación y manipulación de grafos es \textbf{NetworkX}~\cite{NetworkX2008}. Frente a alternativas como \textit{igraph} (núcleo en C, API Python/R) o \textit{graph-tool} (C++ con bindings Python de instalación compleja), NetworkX es una librería puramente Python que se integra directamente con el resto del ecosistema del proyecto sin dependencias nativas adicionales. Implementa de serie todos los modelos generativos necesarios —Erdős–Rényi, Watts–Strogatz, Barabási–Albert extendido— y expone los grafos como objetos Python inspeccionables sin conversión, lo que simplifica tanto el análisis interactivo como la recogida de trazas. Su rendimiento es suficiente para los tamaños experimentales del TFG ($n \leq 20\,000$ nodos).
+
+El módulo \texttt{src/graphs/} organiza todas las topologías bajo una clase base abstracta \texttt{BaseGraph}. Esta clase encapsula dos responsabilidades transversales: (i)~la construcción \emph{lazy} del grafo (se construye la primera vez que se accede a \texttt{.graph}, no en el \texttt{\_\_init\_\_}) y (ii)~la anotación automática de aristas con atributos \texttt{layer} y \texttt{trust} mediante el método \texttt{\_annotate()}, que convierte cualquier topología en un \texttt{nx.MultiDiGraph} dirigido. Las subclases solo implementan \texttt{\_build\_topology()}, que devuelve la topología desnuda. Los parámetros comunes a toda clase son \texttt{seed} (semilla para reproducibilidad) y \texttt{layer} (\texttt{"analog"} o \texttt{"digital"}).
+
+\paragraph{Erdős–Rényi (\texttt{ErdosRenyiGraph}).}
+Implementa el modelo $\mathcal{G}(n, p)$~\cite{ErdosRenyi1960} mediante \texttt{networkx.erdos\_renyi\_graph}. Parámetros específicos: \texttt{num\_nodes} ($n$), \texttt{edge\_prob} ($p \in [0,1]$) y \texttt{connected} (booleano: si \texttt{True}, une componentes conexas añadiendo aristas mínimas). Es el modelo de referencia aleatorio sin estructura: todos los nodos tienen probabilidad idéntica de conectarse y la distribución de grado converge a una Poisson sin hubs.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/erdos_renyi_graph.png}
+  \caption{Erdős–Rényi $\mathcal{G}(500,\, 0{,}02)$. Sin estructura ni hubs; conectividad homogénea.}
+  \label{fig:erdos}
 \end{figure}
 
-El pipeline de una simulación sigue una secuencia bien definida, ilustrada en la figura~\ref{fig:pipeline}. En primer lugar, \texttt{build\_graph} construye o carga el grafo y le asigna los atributos de confianza por arista. A continuación se instancia \texttt{NetworkModel}, que crea un agente por nodo y configura el \texttt{DataCollector}. La función \texttt{inject\_narrative} siembra la narrativa inicial entregando mensajes-semilla directamente a las bandejas de entrada de los nodos seleccionados mediante \texttt{seed\_messages}, sin pasar por la sub-fase de transmisión. Cada paso discreto se divide en dos sub-fases: la sub-fase TX, en la que cada agente procesa su bandeja de entrada y coloca los mensajes resultantes en su buzón de salida, y la sub-fase RX, en la que esos mensajes se entregan a los vecinos. El \texttt{DataCollector} registra el estado tras cada paso; al finalizar la simulación, los datos se exportan a CSV para su análisis en cuaderno (\emph{notebook}) y para la generación del GIF de \emph{replay}.
+\paragraph{Watts–Strogatz (\texttt{WattsStrogatzGraph}).}
+Implementa el modelo de mundo pequeño~\cite{WattsStrogatz1998} mediante \texttt{networkx.watts\_strogatz\_graph}. Parámetros específicos: \texttt{num\_nodes}, \texttt{k} (cada nodo conectado a sus $k$ vecinos más cercanos en el anillo inicial) y \texttt{rewire\_prob} ($p_{\mathrm{rewire}} \in [0,1]$, fracción de aristas recableadas aleatoriamente). El parámetro \texttt{directed} controla si la topología se convierte a digrafo; si es \texttt{False}, la clase base añade ambas direcciones con igual confianza, modelando relaciones simétricas de la capa analógica. El resultado combina alto agrupamiento local (vecinos del vecino también son vecinos) con diámetro reducido por los atajos aleatorios, reproduciendo el número de Dunbar~\cite{Dunbar1992} de la capa social presencial.
 
-\begin{figure}[h!]
-\centering
-\fbox{\parbox{0.85\linewidth}{\centering\vspace{1.5cm} PENDIENTE (figura a generar): diagrama del pipeline de simulación (\texttt{build\_graph} → \texttt{NetworkModel} → \texttt{inject\_narrative} → bucle TX/RX → \texttt{DataCollector} → CSV → análisis/replay)\vspace{1.5cm}}}
-\caption{Pipeline de simulación: desde la construcción del grafo hasta la exportación de trazas.}
-\label{fig:pipeline}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/watts_graph.png}
+  \caption{Watts–Strogatz $n=500$, $k=6$, $p=0{,}10$. Estructura de anillo con atajos aleatorios; grado concentrado en torno a $k=6$ sin hubs.}
+  \label{fig:watts}
 \end{figure}
 
-La reproducibilidad de los experimentos está garantizada por una única semilla entera que controla tres fuentes de aleatoriedad: la generación del grafo, el muestreo de los umbrales de adopción $\theta$ de cada agente y la dinámica estocástica durante la simulación. Con una semilla fija, cada corrida es completamente determinista; las réplicas Monte Carlo se obtienen variando únicamente dicha semilla. Toda interacción queda registrada con un identificador de traza (\texttt{trace\_id}) y un identificador del mensaje padre (\texttt{parent\_message\_id}), lo que permite reconstruir el árbol de propagación de cualquier narrativa y visualizarlo a posteriori sin necesidad de repetir la simulación.
+\paragraph{Libre de escala (\texttt{ScaleFreeGraph}).}
+Implementa la variante dirigida de Bollobás et al.~\cite{Bollobas2003} mediante \texttt{networkx.scale\_free\_graph}, que añade nodos siguiendo tres pasos mutuamente excluyentes con probabilidades \texttt{alpha} ($\alpha$, añadir arista desde nodo nuevo), \texttt{beta} ($\beta$, arista entre nodos existentes) y \texttt{gamma} ($\gamma_{\mathrm{BA}}$, arista hacia nodo nuevo), con la restricción $\alpha + \beta + \gamma = 1$. Los parámetros \texttt{delta\_in} y \texttt{delta\_out} son sesgos de preferencia de entrada y salida que modulan el exponente de la ley de potencias. Los valores de referencia ($\alpha=0{,}41$, $\beta=0{,}54$, $\gamma=0{,}05$, $\delta_{\mathrm{in}}=0{,}2$) producen distribuciones de grado con exponente $\hat{\gamma} \in [2,3]$, típico de plataformas digitales~\cite{AlbertBarabasi2002}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/scalefree_graph.png}
+  \caption{Libre de escala $n=500$, $\alpha=0{,}41$, $\beta=0{,}54$, $\gamma=0{,}05$. Los hubs concentran la mayoría de las aristas; grado de entrada máximo: 193 frente a 19 en Erdős–Rényi del mismo tamaño.}
+  \label{fig:scalefree}
+\end{figure}
+
+\paragraph{Red real SNAP (\texttt{SNAPGraph}).}
+Carga grafos empíricos del repositorio SNAP~\cite{LeskovecKrevl2014} mediante un descargador que cachea localmente los datasets. El parámetro \texttt{dataset\_name} identifica la red ("ego-Facebook", "ego-Twitter", etc.); \texttt{cache\_dir} es la ruta local de caché; \texttt{directed} controla si se fuerza un digrafo.
+
+Muchas redes SNAP son no dirigidas (listas de amistades mutuas), pero los flujos de influencia en redes sociales son asimétricos: uno sigue o es influenciado por otro, no necesariamente al revés. Cuando se solicita \texttt{directed=True} sobre una red no dirigida, la clase convierte cada arista $\{u,v\}$ en un arco orientado usando una regla probabilística ponderada por grado:
+\[
+  P(u \to v) = \frac{\deg(v)}{\deg(u) + \deg(v)}.
+\]
+La intuición es que los nodos con mayor grado actúan como \emph{influencers}: atraen más seguidores y, por tanto, reciben más arcos entrantes. Por ejemplo, si el nodo $u$ tiene grado~5 y el nodo $v$ tiene grado~15, entonces
+\[
+  P(u \to v) = \frac{15}{5 + 15} = 0{,}75,
+\]
+de modo que con probabilidad $0{,}75$ el arco va de $u$ a $v$ ($u$ sigue a $v$) y solo con probabilidad $0{,}25$ va de $v$ a $u$. La asignación es independiente arista por arista y el resultado es un digrafo con un único arco por par de nodos.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{images/snap_graph.png}
+  \caption{Red real SNAP ego-Facebook ($n \approx 4\,000$, no dirigida). Estructura de comunidades visible; alto agrupamiento local ($C = 0{,}52$) y cola pesada de grado ($k_{\max} = 1\,045$).}
+  \label{fig:snap}
+\end{figure}
+
+\paragraph{Multicapa ScaleFree + Watts–Strogatz (\texttt{MultiLayerGraph}).}
+La clase \texttt{MultiLayerGraph} es la única que sobrescribe directamente \texttt{build()} en lugar de \texttt{\_build\_topology()}, porque gestiona dos topologías independientes con prioridad digital sobre analógica: las aristas de la capa libre de escala no se duplican en la capa Watts–Strogatz. El parámetro \texttt{analog} recibe una instancia de \texttt{WattsConfig} y \texttt{digital} recibe \texttt{ScaleFreeConfig} o \texttt{SNAPConfig}; si la capa digital es SNAP, \texttt{num\_nodes} de la capa analógica se ajusta automáticamente al tamaño del dataset descargado.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.70\linewidth]{images/multilayer_sf_graph.png}
+  \caption{Red multicapa ScaleFree (digital) + Watts–Strogatz (analógica), $n=300$. La capa digital (hubs, en rojo) y la analógica (vecindario local, en azul) coexisten sobre los mismos nodos; ambas capas se distinguen por el atributo \texttt{layer} de cada arista.}
+  \label{fig:multilayer-sf}
+\end{figure}
+
+%%----------------------------------------------------------------------
+\subsubsection{Comparativa de topologías}
+%%----------------------------------------------------------------------
+
+La Tabla~\ref{tab:topologias} recoge las métricas estructurales clave de las cuatro topologías, calculadas sobre instancias de mayor escala del notebook \texttt{grafos\_metricas.ipynb} con semilla fija (todas dirigidas tras la anotación \texttt{\_annotate}).
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{Comparativa de métricas estructurales por topología. $n$: nodos; $\bar{k}_{\mathrm{in}}$: grado entrada medio; $k_{\mathrm{in}}^{\max}$: grado entrada máximo; $C$: transitividad; $\ell$: camino medio; $d$: diámetro; $r$: asortatividad de grado.}
+  \label{tab:topologias}
+  \begin{tabular}{@{}l r r r r r r r@{}}
+    \toprule
+    \textbf{Topología} & $n$ & $\bar{k}_{\mathrm{in}}$ & $k_{\mathrm{in}}^{\max}$ & $C$ & $\ell$ & $d$ & $r$ \\
+    \midrule
+    Erdős–Rényi $\mathcal{G}(n,\,p{=}0{,}005)$          & 10\,000 & 50{,}00  & 77     & 0{,}005 & 2{,}77 & 4  & $-0{,}001$ \\
+    Watts–Strogatz $k{=}150$, $p{=}0{,}02$              & 10\,000 & 150{,}00 & 159    & 0{,}701 & 2{,}87 & 4  & $\phantom{-}0{,}000$ \\
+    Libre de escala $\alpha{=}0{,}41$, $\beta{=}0{,}54$ & 10\,000 & 1{,}87   & 2\,836 & 0{,}078 & 4{,}32 & 14 & $-0{,}154$ \\
+    SNAP ego-Facebook                                     & 4\,039  & 43{,}69  & 1\,045 & 0{,}519 & 3{,}63 & 8  & $+0{,}064$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Los datos cuantifican las diferencias estructurales entre modelos. La red libre de escala concentra la influencia de forma extrema: un único hub acumula $k_{\mathrm{in}}^{\max} = 2\,836$ arcos frente a $77$ del nodo más conectado en Erdős–Rényi del mismo tamaño. Sin embargo, la escasez global de aristas ($\bar{k}_{\mathrm{in}} = 1{,}87$) provoca que el camino medio ($\ell = 4{,}32$) y el diámetro ($d = 14$) sean los más altos de las tres topologías sintéticas: la mayoría de los nodos tienen muy pocas conexiones y la información debe atravesar muchos saltos para alcanzar el hub. La asortatividad negativa ($r = -0{,}154$) confirma que el hub recibe arcos de nodos periféricos de bajo grado. Watts–Strogatz muestra la mayor cohesión local ($C = 0{,}701$) y la distribución de grado más homogénea ($\bar{k}_{\mathrm{in}} = 150$, $k_{\mathrm{in}}^{\max} = 159$, asortatividad nula); el 2\,\% de recableado sobre una base de alta conectividad reduce el diámetro a $d = 4$, idéntico al de Erdős–Rényi pese a un agrupamiento 140 veces mayor. Erdős–Rényi sirve como control sin estructura: agrupamiento y asortatividad próximos a cero, camino medio mínimo ($\ell = 2{,}77$), referencia para aislar el efecto de la topología. SNAP combina alto agrupamiento ($C = 0{,}519$) con asortatividad positiva ($r = +0{,}064$) y un hub de $k_{\mathrm{in}}^{\max} = 1\,045$, rasgos empíricos de redes sociales humanas reales~\cite{Newman2003}.
+
+\paragraph{Diseño de hiperparámetros y realismo.}
+La Tabla~\ref{tab:topologias} iguala el tamaño ($n = 10\,000$) para que la comparación estructural sea homogénea, pero conviene advertir que los valores de grado medio elegidos —en particular el de Watts–Strogatz— no son los que reproducirían una red social real, sino los que hacen visible el contraste entre modelos. El principio empírico fundamental es que el grado medio de las redes sociales humanas \emph{no escala con el número de nodos}: permanece aproximadamente constante por el límite cognitivo de Dunbar~\cite{Dunbar1992}, de modo que las redes grandes son cada vez más dispersas. Un grado medio de $\bar{k}=150$ sobre $n=10\,000$ implica que cada individuo mantiene lazos estables con el $1{,}5\,\%$ de toda la población, cifra inverosímil: el techo de Dunbar ($\sim 150$ relaciones) es la capacidad total a lo largo de la vida, mientras que los lazos de influencia activos rondan la decena. El control Erdős–Rényi debería derivar su probabilidad de arista del grado objetivo, $p = \bar{k}/(n-1) \approx 10^{-3}$, en lugar de un $p$ fijo que infla el grado al crecer la red. La topología libre de escala, en cambio, se autocalibra: su mecanismo de adición genera de forma natural un grado medio bajo ($\bar{k} = 1{,}87$) y hubs emergentes, por lo que es la única que produce densidades realistas sin ajuste manual; el dataset empírico SNAP ($\bar{k}_{\mathrm{in}} = 43{,}69$ sobre $n = 4\,039$) ofrece el anclaje de referencia sobre el orden de magnitud esperable.
+
+La Tabla~\ref{tab:topologias} recoge únicamente las métricas más representativas para la discusión. El conjunto completo de métricas estructurales de cada topología (Erdős–Rényi, Watts–Strogatz, libre de escala y SNAP) —incluyendo densidad, componentes conexas, reciprocidad, centralidades de intermediación y \emph{PageRank}, y exponentes de la ley de potencias— se adjunta en forma de tablas en el Anexo~\ref{anexo:metricas-redes}, calculadas con el notebook \texttt{grafos\_metricas.ipynb}.
+
+%%----------------------------------------------------------------------
+\subsubsection{Agentes: jerarquía de implementación}
+%%----------------------------------------------------------------------
+
+El \textit{framework} de simulación multiagente empleado es \textbf{Mesa 3}~\cite{Mesa3}. Frente a alternativas como NetLogo (DSL propietario) o Repast y JADE (ecosistema Java), Mesa implementa directamente en Python el ciclo de vida de los agentes mediante \texttt{AgentSet} y \texttt{DataCollector}, con un coste de integración mínimo sobre el resto del proyecto. La versión~3 unifica el \textit{scheduling} en un único objeto \texttt{AgentSet}, eliminando la necesidad del activador separado de versiones anteriores, y permite activar agentes de forma aleatoria o determinista con una sola llamada. Esta integración nativa con Python facilita la inspección directa del estado de los agentes durante la simulación y la recogida de trazas sin capas adicionales de serialización.
+
+El módulo \texttt{src/agents/} organiza todos los modelos de comportamiento bajo la clase abstracta \texttt{BaseAgent}, que hereda a su vez de \texttt{mesa.Agent}. Esta doble herencia garantiza que todo agente queda automáticamente registrado en el planificador de Mesa (\texttt{AgentSet}) al llamar a \texttt{super().\_\_init\_(model)}, y que posee un \texttt{unique\_id} autoincremental y una referencia al modelo (\texttt{self.model}). El único atributo añadido por \texttt{BaseAgent} es \texttt{node\_id}: el identificador del nodo del grafo donde vive el agente. El método \texttt{step()} es abstracto y debe ser implementado por cada subclase.
+
+Se han implementado y evaluado dos subclases concretas: el agente estocástico y el agente resistente. El agente cognitivo-emocional (bayesiano) está diseñado y parcialmente codificado (\texttt{src/agents/bayesian.py}), pero no se ha ejecutado experimentalmente; se reserva como línea de trabajo futuro.
+
+\paragraph{Agente estocástico (\texttt{StochasticAgent}).}
+Control nulo sin estado cognitivo interno. Cada paso ejecuta dos fases independientes: (i)~\textbf{reenvío}: si el inbox contiene mensajes, con probabilidad \texttt{trace\_continue\_probability} reenvía el último mensaje recibido a un subconjunto aleatorio de vecinos (tamaño $\in [1, |\text{vecinos}|]$); (ii)~\textbf{creación}: con probabilidad \texttt{fire\_probability} emite un mensaje de ruido neutro hacia otro subconjunto aleatorio.
+
+\noindent Parámetros de instancia:
+\begin{itemize}[noitemsep]
+  \item \texttt{fire\_probability} ($p_{\text{fire}} \in [0,1]$): probabilidad de emitir ruido neutro por paso.
+  \item \texttt{trace\_continue\_probability} ($p_{\text{fwd}} \in [0,1]$): probabilidad de reenviar el último mensaje del inbox.
+\end{itemize}
+
+\noindent Ambas probabilidades son independientes: el agente puede reenviar y generar ruido simultáneamente. Al eliminar toda psicología, este modelo aísla la contribución pura de la topología del grafo y del azar en la difusión; cualquier diferencia observable respecto al agente resistente debe atribuirse a los mecanismos cognitivos añadidos en este último.
+
+\paragraph{Agente resistente (\texttt{ResistantAgent}).}
+Modelo de umbral lineal con estado cognitivo interno compuesto por \texttt{conviction} ($c_i \in [0,1]$) y \texttt{theta} ($\theta_i \in [0,1]$). Cada paso ejecuta tres fases en orden:
+
+\begin{enumerate}[noitemsep]
+  \item \textbf{Observación}: consume el inbox y, por cada mensaje de la narrativa ($v \leq v_{\text{thr}}$), actualiza la convicción según la ecuación~\eqref{eq:conviction}. Si $c_i \geq \theta_i$, registra la adopción (\texttt{adopted=True}, \texttt{adopted\_at=step}, llama a \texttt{DataCollector}).
+  \item \textbf{Re-emisión espontánea}: si el agente está adoptado (\texttt{adopted=True}) y posee una narrativa guardada (\texttt{\_last\_narrative}), la reenvía con probabilidad \texttt{forward\_probability} a un subconjunto aleatorio de vecinos, prolongando el periodo infeccioso más allá del paso de adopción.
+  \item \textbf{Ruido ambiental}: con probabilidad \texttt{fire\_probability} emite un mensaje neutro (igual que el agente estocástico).
+\end{enumerate}
+
+\noindent Parámetros de instancia (configurados en \texttt{NarrativeConfig}):
+\begin{itemize}[noitemsep]
+  \item \texttt{theta} ($\theta_i \in [0,1]$): umbral de adopción, muestreado de la distribución bimodal que modela dos subpoblaciones diferenciadas:
+  \begin{equation}
+    \label{eq:theta}
+    \theta_i \sim
+    \begin{cases}
+      \operatorname{clip}\!\left(\mathcal{N}(\mu_s,\,\sigma^2),\,0,\,1\right) & \text{con probabilidad } p_s,\\[4pt]
+      \operatorname{clip}\!\left(\mathcal{N}(\mu_r,\,\sigma^2),\,0,\,1\right) & \text{con probabilidad } 1 - p_s,
+    \end{cases}
+  \end{equation}
+  donde $\mu_s < \mu_r$. Controlado por \texttt{susceptible\_fraction} ($p_s$), \texttt{theta\_susceptible\_mu} ($\mu_s = 0{,}30$), \texttt{theta\_resistant\_mu} ($\mu_r = 0{,}70$) y \texttt{theta\_sigma} ($\sigma = 0{,}10$).
+  \item \texttt{gamma} ($\gamma \in [0,1]$): ganancia de persuasión por exposición.
+  \item \texttt{forward\_probability} ($f \in [0,1]$): probabilidad de re-emitir la narrativa en cada paso si adoptado.
+  \item \texttt{fire\_probability} ($p_{\text{fire}} \in [0,1]$): probabilidad de emitir ruido neutro.
+  \item \texttt{narrative\_veracity\_threshold} ($v_{\text{thr}} \in [0,1]$): umbral de veracidad para clasificar un mensaje como narrativa.
+\end{itemize}
+
+La tabla~\ref{tab:agentes-impl} resume las propiedades de los dos modelos implementados.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Comparativa de los dos modelos de agente implementados y evaluados.}
+\label{tab:agentes-impl}
+\begin{tabular}{@{}p{3.0cm} p{3.2cm} p{3.4cm} p{4.0cm}@{}}
+\toprule
+\textbf{Clase} &
+\textbf{Estado interno} &
+\textbf{Regla de adopción} &
+\textbf{Parámetros propios} \\
+\midrule
+\texttt{StochasticAgent}
+  & Ninguno
+  & No adopta: reenvía ciegamente
+  & \texttt{fire\_probability}, \texttt{trace\_continue\_probability} \\
+\addlinespace
+\texttt{ResistantAgent}
+  & \texttt{conviction}, \texttt{theta}, \texttt{adopted}
+  & $c_i \geq \theta_i$ (umbral lineal)
+  & \texttt{gamma}, \texttt{forward\_probability}, \texttt{theta\_*}, \texttt{susceptible\_fraction}, \texttt{narrative\_veracity\_threshold} \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -75,7 +75,7 @@ data/snap/raw/*.txt.gz
 data/snap/processed/*.txt
 !data/snap/processed/ego-Facebook.txt
 
-data/results/sweep/
+data/results/
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Sistema operativo

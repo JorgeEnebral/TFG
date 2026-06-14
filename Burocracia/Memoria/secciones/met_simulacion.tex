@@ -1,0 +1,104 @@
+%%----------------------------------------------------------------------
+\subsubsection{Estructura del simulador}
+%%----------------------------------------------------------------------
+
+El simulador está desarrollado íntegramente en Python~3.13~\cite{PythonLang}, apoyándose en tres dependencias principales. El \emph{framework} de modelado basado en agentes \texttt{mesa}~3.x~\cite{Mesa3} aporta el planificador de pasos discretos, la clase base \texttt{Agent} y el \texttt{AgentSet}, que permiten activar colectivamente subconjuntos de agentes sin bucles explícitos. La librería \texttt{networkx}~\cite{NetworkX2008} proporciona las estructuras de grafo y los algoritmos estándar (grado, betweenness, componentes conexas, carga de redes SNAP). La combinación resulta natural: \texttt{mesa} gestiona la lógica de agentes y la recogida de trazas, mientras \texttt{networkx} actúa como sustrato topológico intercambiable.
+
+La arquitectura del código está organizada en cinco módulos cohesivos:
+
+\begin{itemize}[noitemsep]
+  \item \texttt{graphs/}: jerarquía de topologías (\texttt{BaseGraph} y subclases); módulo \texttt{trust.py} con las funciones de confianza por capa.
+  \item \texttt{agents/}: jerarquía de modelos de comportamiento (\texttt{BaseAgent} → \texttt{StochasticAgent}, \texttt{ResistantAgent}).
+  \item \texttt{simulation/}: modelo Mesa \texttt{NetworkModel}, \texttt{DataCollector} (registra cada adopción e interacción), y la clase \texttt{Simulation} que orquesta el pipeline.
+  \item \texttt{visualization/}: métricas de grafo, gráficas de análisis y \emph{replay} animado de trazas.
+  \item \texttt{experiments/}: barridos de hiperparámetros con ejecución paralela (\texttt{ProcessPoolExecutor}).
+\end{itemize}
+
+El punto de extensión central es la \emph{agent\_factory}: \texttt{NetworkModel} recibe una función que construye el agente de cada nodo, de modo que cambiar el modelo de comportamiento no requiere modificar la lógica de simulación.
+
+El \textbf{pipeline de una simulación} sigue la secuencia: \texttt{build\_graph} construye el grafo y asigna confianzas por arista → \texttt{NetworkModel} instancia un agente por nodo y configura el \texttt{DataCollector} → \texttt{inject\_narrative} siembra la narrativa entregando mensajes directamente a los inboxes de los nodos seleccionados → bucle de pasos discretos con dos sub-fases por paso: \textbf{TX} (cada agente procesa su inbox y coloca mensajes en el buzón de salida) y \textbf{RX} (los mensajes se entregan a los vecinos según el grafo) → al finalizar, el \texttt{DataCollector} exporta trazas a CSV para análisis en notebook.
+
+La \textbf{reproducibilidad} está garantizada por una única semilla entera que controla tres fuentes de aleatoriedad: la generación del grafo, el muestreo de los umbrales $\theta_i$ de cada agente y la dinámica estocástica durante la simulación. Con semilla fija, cada corrida es completamente determinista; las réplicas Monte Carlo se obtienen variando únicamente esa semilla. Toda interacción queda registrada con un \texttt{trace\_id} y un \texttt{parent\_message\_id}, lo que permite reconstruir el árbol de propagación de cualquier narrativa sin necesidad de repetir la simulación.
+
+%%----------------------------------------------------------------------
+\subsubsection{Experimento ejecutado: barrido OFAT}
+%%----------------------------------------------------------------------
+
+El experimento diseñado y ejecutado aplica la estrategia \emph{one-factor-at-a-time} (OFAT) sobre el agente resistente en dos topologías. Se define formalmente así: sea $G = (V, E)$ una red con $|V| = N$ nodos. En $t = 0$ se inyecta una narrativa a través de un conjunto de semillas $S \subset V$, $|S| = k$, que quedan con convicción unitaria. El resto de la población parte de $c_i(0) = 0$. Se monitoriza $A(t) = \{ i \in V \setminus S : c_i(t) \geq \theta_i \}$ a lo largo del tiempo y se cuantifica la resistencia cognitiva de la población.
+
+\paragraph{Métricas.}
+La \emph{tasa de ataque} $a = |A(T)| / (N - k)$ mide la fracción de no-semillas convertidas al final de la simulación; la \emph{resiliencia} $R = 1 - a$. La \emph{entropía cognitiva} (en bits):
+
+\begin{equation}
+  \label{eq:entropia}
+  H = -\bigl[a \log_2 a + (1 - a) \log_2 (1 - a)\bigr],
+\end{equation}
+
+\noindent alcanza su máximo ($H = 1$) cuando la población está dividida en partes iguales y tiende a cero cuando el consenso colapsa, reflejando la pérdida de pluralidad cognitiva~\cite{PolytechniqueCNA2026}. La \emph{resistencia individual} del agente $i$:
+
+\begin{equation}
+  \label{eq:Ri}
+  R_i =
+  \begin{cases}
+    1 & \text{si el agente no adopta nunca,}\\[4pt]
+    1 - \dfrac{1}{d_i} & \text{si adopta tras } d_i \text{ exposiciones,}
+  \end{cases}
+\end{equation}
+
+\noindent donde $d_i$ es la dosis acumulada en el momento de conversión. El \emph{tiempo de penetración} $t_{50}$ es el paso en que se ha convertido la mitad de los agentes que acabarán convirtiéndose.
+
+\paragraph{Hiperparámetros de referencia.}
+Los parámetros del experimento se dividen en dos grupos. Los \textbf{hiperparámetros fijos} (Tabla~\ref{tab:fijos}) definen el escenario de referencia y no varían en ningún experimento: tamaño de la población, horizonte temporal, distribución bimodal de umbrales y parámetros generativos de cada topología. Su función es aislar el efecto de la narrativa; modificarlos cambiaría el sistema simulado en lugar de la campaña informativa. Los \textbf{hiperparámetros barridos} (Tabla~\ref{tab:barridos}) son las palancas controlables por el atacante ---ganancia de persuasión $\gamma$, probabilidad de reenvío $f$, estrategia y número de semillas $k$, fanout inicial $\rho$--- y dos moduladores de composición y contenido de la narrativa ($p_s$, $\lambda$). Son las variables cuya sensibilidad sobre la resiliencia es el objeto del estudio.
+
+\begin{table}[ht]
+  \centering
+  \small
+  \caption{Hiperparámetros fijos del experimento.}
+  \label{tab:fijos}
+  \begin{tabular}{@{}p{3.4cm} p{2.4cm} p{5.2cm} l@{}}
+    \toprule
+    \textbf{Hiperparámetro} & \textbf{Valor} & \textbf{Justificación} & \textbf{Fuente} \\
+    \midrule
+    $N$ / réplicas MC & $10\,000$ / $50$ & Equilibrio coste-realismo; ensemble estadístico & --- \\
+    \addlinespace
+    Días / pasos & $3$ / $15\,\text{paso/día}$ & $T = 45$ pasos equivale a 3 días de actividad & --- \\
+    \addlinespace
+    $\mu_s$, $\mu_r$, $\sigma$ & $0{,}30$ / $0{,}70$ / $0{,}10$ & Dos subpoblaciones; heterogeneidad gobierna cascadas & \cite{Granovetter1978,Watts2002} \\
+    \addlinespace
+    Umbral de veracidad $v_{\text{thr}}$ & $0{,}30$ & Define la narrativa de desinformación rastreada & \cite{Vosoughi2018} \\
+    \addlinespace
+    Libre de escala $\alpha,\beta,\gamma_{\mathrm{BA}},\delta_{\mathrm{in}}$ & $0{,}41/0{,}54/0{,}05/0{,}2$ & Produce $\hat\gamma \in [2,3]$ típico de redes digitales & \cite{Bollobas2003} \\
+    \addlinespace
+    Mundo pequeño $k$, $p_{\mathrm{rewire}}$ & $6$ / $0{,}10$ & Alto agrupamiento local y diámetro corto; capa analógica. $k{=}6$ en lugar de valores mayores (véase tabla comparativa, Secc.~\ref{sec:implementacion}) por eficiencia computacional: $k{=}150$ sobre $N{=}10\,000$ nodos implica que cada individuo conoce al $1{,}5\,\%$ de la población, densidad inverosímil que inflaría artificialmente la difusión. & \cite{WattsStrogatz1998,Dunbar1992} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Diseño OFAT.}
+Se parte del \emph{baseline} de la Tabla~\ref{tab:barridos} y se varía un único factor por experimento sobre las dos topologías. Cada celda experimental se repite con $50$ semillas pseudoaleatorias distintas; cada semilla regenera de forma independiente el grafo, los umbrales $\theta_i$ y la trayectoria dinámica. Los resultados se reportan como media $\pm$ desviación estándar sobre las réplicas. El barrido cubre siete factores de la narrativa, produciendo $2 \times 20 \times 50 = 2\,000$ corridas totales, ejecutadas en paralelo sobre múltiples núcleos.
+
+\begin{table}[ht]
+  \centering
+  \small
+  \caption{Hiperparámetros barridos: valor \emph{baseline} (en negrita) y niveles del barrido OFAT con las métricas recogidas en cada celda.}
+  \label{tab:barridos}
+  \begin{tabular}{@{}l p{1.8cm} p{1.8cm} p{4.8cm} p{3.0cm}@{}}
+    \toprule
+    \textbf{Factor} & \textbf{Símbolo} & \textbf{Baseline} & \textbf{Niveles} & \textbf{Métricas} \\
+    \midrule
+    Ganancia persuasión & $\gamma$ & $\mathbf{0{,}50}$ & $0{,}25$;\ $0{,}50$;\ $0{,}75$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Estrategia semilla & --- & \textbf{\emph{hubs}} & \emph{hubs};\ aleatorio & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Fanout inicial & $\rho$ & $\mathbf{0{,}4}$ & $0{,}2$;\ $0{,}4$;\ $0{,}6$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Número de semillas & $k$ & $\mathbf{0{,}5\%}$ & $0{,}1\%$;\ $0{,}5\%$;\ $1\%$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Prob.\ reenvío & $f$ & $\mathbf{0{,}25}$ & $0{,}10$;\ $0{,}25$;\ $0{,}40$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Fracc.\ susceptible & $p_s$ & $\mathbf{0{,}50}$ & $0{,}25$;\ $0{,}50$;\ $0{,}75$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \addlinespace
+    Carga emocional & $\lambda$ & $\mathbf{0{,}60}$ & $0{,}40$;\ $0{,}60$;\ $0{,}80$ & $a$, $R$, $H$, $\bar{R}_i$, $t_{50}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
