@@ -57,16 +57,6 @@
     citecolor=darkgreen
 }
 
-% babel-spanish redefine \% con espaciado tipográfico que provoca
-% "Incompatible glue units" en modo matemático. Restauramos el % normal
-% dentro de fórmulas y conservamos el espaciado español en texto.
-\makeatletter
-\AtBeginDocument{%
-  \NewCommandCopy\babelpercent\%
-  \RenewDocumentCommand\%{}{\ifmmode\@percentchar\else\babelpercent\fi}%
-}
-\makeatother
-
 % Language-dependent names
 \addto\captionsspanish{
     \renewcommand{\contentsname}{Índice}
@@ -272,7 +262,11 @@ El diseño experimental sigue la estrategia OFAT: se fija una configuración de 
 
 \sectionnotoc{Resultados}
 
+El barrido OFAT confirma que la topología de la red domina sobre cualquier parámetro de la campaña: la red libre de escala (capa digital) es sistemáticamente más vulnerable que la de mundo pequeño (capa analógica), con una brecha típica de $0{,}15$ puntos de resiliencia. Entre las palancas de la narrativa, la ganancia de persuasión $\gamma$ y la probabilidad de reenvío $f$ son las más determinantes en ambas topologías, mientras que el \emph{fanout} inicial $\rho$ resulta despreciable ($\Delta R \approx 0{,}02$). La estrategia de siembra es el factor más dependiente de la estructura: sembrar en \emph{hubs} en lugar de al azar multiplica por más de catorce la tasa de ataque en la red libre de escala ($0{,}22$ frente a $0{,}015$), pero es casi irrelevante en mundo pequeño ($0{,}06$ frente a $0{,}05$), donde la ausencia de \emph{hubs} priva al atacante de amplificadores. Magnitud y velocidad son ejes independientes: la red libre de escala produce una onda de choque temprana que satura pronto ($t_{\text{peak}}\approx 2$), mientras que la de mundo pequeño difunde como una combustión lenta que culmina cerca del final del horizonte ($t_{\text{peak}}\approx 39$).
+
 \sectionnotoc{Conclusiones}
+
+Se ha materializado un banco de pruebas abierto, modular y reproducible para medir la resistencia cognitiva de una población frente a campañas de desinformación sobre redes arbitrarias. El hallazgo más robusto es que la estructura de la red condiciona la vulnerabilidad por encima de cualquier parámetro de la narrativa, y que la vulnerabilidad de la capa digital es esencialmente el fenómeno de los \emph{hubs}: protegerlos es la palanca defensiva estructural más eficiente. La calidad persuasiva y la viralidad del mensaje pesan más que el tamaño del dispositivo de siembra, de modo que un atacante eficaz prioriza un mensaje convincente y viral, y solo rentabiliza la siembra dirigida cuando la red posee \emph{hubs} explotables. Finalmente, la ventana útil de intervención defensiva es de pocos pasos en la capa digital y mucho más amplia en la analógica.
 
 \end{otherlanguage}
 
@@ -328,7 +322,11 @@ The experimental design follows the OFAT strategy: a reference configuration is 
 
 \sectionnotoc{Results}
 
+The OFAT sweep confirms that the network topology dominates over any campaign parameter: the scale-free network (digital layer) is systematically more vulnerable than the small-world network (analogue layer), with a typical gap of $0.15$ resilience points. Among the narrative levers, the persuasion gain $\gamma$ and the forwarding probability $f$ are the most decisive in both topologies, whereas the initial \emph{fanout} $\rho$ is negligible ($\Delta R \approx 0.02$). The seeding strategy is the most structure-dependent factor: seeding in \emph{hubs} rather than at random multiplies the attack rate by more than fourteen in the scale-free network ($0.22$ versus $0.015$), but is almost irrelevant in the small-world network ($0.06$ versus $0.05$), where the absence of \emph{hubs} deprives the attacker of amplifiers. Magnitude and speed are independent axes: the scale-free network produces an early shock wave that saturates quickly ($t_{\text{peak}}\approx 2$), whereas the small-world network spreads as a slow combustion that culminates near the end of the horizon ($t_{\text{peak}}\approx 39$).
+
 \sectionnotoc{Conclusions}
+
+An open, modular and reproducible testbed has been materialised to measure the cognitive resilience of a population against disinformation campaigns over arbitrary networks. The most robust finding is that the structure of the network conditions vulnerability above any parameter of the narrative, and that the vulnerability of the digital layer is essentially the \emph{hubs} phenomenon: protecting them is the most efficient structural defensive lever. The persuasive quality and the virality of the message weigh more than the size of the seeding device, so that an effective attacker prioritises a convincing and viral message, and only profits from targeted seeding when the network possesses exploitable \emph{hubs}. Finally, the useful window for defensive intervention is a few steps in the digital layer and much wider in the analogue one.
 
 \end{otherlanguage}
 
@@ -342,6 +340,7 @@ The experimental design follows the OFAT strategy: a reference configuration is 
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
+\setcounter{tocdepth}{3}
 \tableofcontents
 \thispagestyle{fancy}
 \newpage
@@ -634,7 +633,31 @@ Tres conclusiones cierran el análisis. Primero, la \textbf{ganancia de persuasi
 
 \subsection{Conclusiones}
 
+Este Trabajo Fin de Grado ha diseñado y construido un simulador multiagente de propagación de narrativas sobre redes complejas y lo ha empleado para medir, de forma cuantitativa y reproducible, la resistencia cognitiva de una población frente a un ataque informativo. El cumplimiento de los objetivos planteados (Secc.~\ref{sec:methodology}) y los resultados del barrido OFAT de $2\,000$ corridas (Secc.~\ref{sec:results}) permiten extraer las siguientes conclusiones.
+
+\paragraph{Aportación metodológica.} Se ha materializado un simulador modular sobre \texttt{mesa}~3.x y \texttt{networkx} que separa de forma limpia el sustrato topológico, el modelo de comportamiento del agente y la dinámica de propagación, y que registra cada interacción con trazabilidad completa (\texttt{trace\_id}, \texttt{parent\_message\_id}). Esta arquitectura, junto con el control de la aleatoriedad por una única semilla, garantiza la reproducibilidad exacta de cada experimento y convierte la herramienta en un banco de pruebas reutilizable para estudiar campañas informativas sobre redes arbitrarias. La formalización de la guerra cognitiva en un modelo operable —mensaje con dimensión emocional, agente de umbral lineal y métricas de resistencia poblacional ($R$, $H$) e individual ($R_i$)— constituye la principal contribución conceptual del trabajo.
+
+\paragraph{La topología domina sobre cualquier palanca de la campaña.} El hallazgo más robusto del estudio es que la estructura de la red condiciona la vulnerabilidad por encima de cualquier parámetro de la narrativa: la red libre de escala (capa digital) es sistemáticamente más vulnerable que la de mundo pequeño (capa analógica), con una brecha típica de $0{,}15$ puntos de resiliencia en todas las celdas del barrido. La homogeneidad de grado de la capa analógica priva al atacante de amplificadores y reduce a entre un tercio y la mitad el alcance de la misma campaña.
+
+\paragraph{La vulnerabilidad libre de escala es el fenómeno de los hubs.} La brecha entre sembrar en \emph{hubs} y sembrar al azar es enorme sobre la red libre de escala (tasa de ataque $0{,}22$ frente a $0{,}015$, un factor superior a catorce) y prácticamente nula sobre mundo pequeño ($0{,}06$ frente a $0{,}05$). La ventaja estructural del atacante en la capa digital desaparece si no puede identificar y atacar los nodos de alto grado, lo que señala la protección de los hubs como la palanca defensiva estructural más eficiente.
+
+\paragraph{La calidad persuasiva y la viralidad pesan más que el dispositivo de siembra.} En el ranking de factores, la ganancia de persuasión $\gamma$ es la palanca más determinante en ambas topologías, seguida de la probabilidad de reenvío $f$; ambas son intrínsecas al contenido y a su capacidad de reproducirse a través de la propia población. En cambio, el \emph{fanout} inicial de la siembra resulta despreciable ($\Delta R \approx 0{,}02$). El atacante eficaz, por tanto, prioriza un mensaje convincente y viral sobre el tamaño del dispositivo inicial, y solo rentabiliza la siembra dirigida cuando la red posee hubs explotables.
+
+\paragraph{Magnitud y velocidad son dos ejes independientes del ataque.} Más allá de cuánta población convierte, cada topología impone un régimen temporal distinto: la red libre de escala produce una onda de choque temprana (pico de conversiones casi inmediato, $t_{\text{peak}}\approx 2$) que satura pronto, mientras que la de mundo pequeño difunde como una combustión lenta que culmina cerca del final del horizonte ($t_{\text{peak}}\approx 39$). La consecuencia defensiva es directa: la ventana útil de intervención es de pocos pasos en la capa digital y mucho más amplia en la analógica.
+
 \subsection{Trabajo Futuro}
+
+El simulador y el análisis presentados abren varias líneas de extensión natural, ordenadas de menor a mayor alcance.
+
+\paragraph{Agentes defensivos y contra-narrativas.} El escenario estudiado modela únicamente al atacante. Una extensión inmediata es introducir agentes que inyecten contra-narrativas o ejerzan moderación, transformando el experimento en un juego atacante--defensor y permitiendo evaluar estrategias de inmunización (p.\,ej. proteger los hubs identificados como el factor estructural crítico).
+
+\paragraph{Activación del modelo cognitivo-emocional completo.} El marco formaliza un agente con dinámica afectiva y modulador circadiano (Secc.~\ref{sec:marco}) que el barrido actual no explota: el agente resistente emplea un umbral lineal estático. Integrar plenamente la dimensión emocional y temporal del agente permitiría estudiar cómo la fatiga afectiva y los ritmos de sugestionabilidad modulan las cascadas.
+
+\paragraph{Propagación multicapa y redes dinámicas.} La arquitectura admite capas analógica y digital, pero el experimento las analiza por separado. Acoplar ambas capas simultáneamente —un mismo individuo expuesto por sus dos registros— y permitir topologías que evolucionan en el tiempo aproximaría el modelo a la difusión real, donde lo digital y lo presencial se retroalimentan.
+
+\paragraph{Diseño experimental factorial.} El diseño OFAT cuantifica el efecto marginal de cada factor pero, por construcción, no captura las interacciones entre ellos. Un diseño factorial o un muestreo por superficie de respuesta revelaría sinergias —por ejemplo, si una alta carga emocional amplifica el efecto de la ganancia de persuasión— a costa de un mayor presupuesto de cómputo.
+
+\paragraph{Calibración empírica y escalado.} Por último, anclar los parámetros del simulador a cascadas reales documentadas~\cite{Vosoughi2018} y ejecutar el barrido sobre topologías empíricas de mayor tamaño (como el grafo SNAP a escala completa) permitiría contrastar las predicciones del modelo con datos observados y reforzar su validez externa.
 
 \newpage
 
@@ -650,52 +673,9 @@ Tres conclusiones cierran el análisis. Primero, la \textbf{ganancia de persuasi
 %%%% Anexos %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
-\section{Hiperparámetros y resultados extendidos del barrido OFAT}
+\section*{Anexo de tablas}
 
-La Tabla~\ref{tab:anexo-sweep} recoge los valores completos de tasa de ataque media y desviación estándar para todas las celdas del barrido experimental (7 factores $\times$ niveles $\times$ 2 topologías, 50 réplicas MC cada una, $N=10\,000$).
-
-\begin{table}[ht]
-  \centering
-  \small
-  \caption{Resultados completos del barrido OFAT. Tasa de ataque media $\pm \sigma$ y resiliencia $R = 1 - a$ para cada celda experimental.}
-  \label{tab:anexo-sweep}
-  \begin{tabular}{@{}l l c c c c@{}}
-    \toprule
-    \textbf{Factor} & \textbf{Nivel} & \multicolumn{2}{c}{\textbf{Libre de escala}} & \multicolumn{2}{c}{\textbf{Mundo pequeño}} \\
-    \cmidrule(lr){3-4} \cmidrule(lr){5-6}
-    & & $a \pm \sigma$ & $R$ & $a \pm \sigma$ & $R$ \\
-    \midrule
-    $\gamma$ & $0{,}25$ & $0{,}238 \pm 0{,}017$ & $0{,}762$ & $0{,}031 \pm 0{,}003$ & $0{,}969$ \\
-             & $0{,}50$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-             & $0{,}75$ & $0{,}513 \pm 0{,}032$ & $0{,}487$ & $0{,}355 \pm 0{,}029$ & $0{,}645$ \\
-    \addlinespace
-    Semilla & \emph{hubs} & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-            & \emph{random} & $0{,}106 \pm 0{,}073$ & $0{,}894$ & $0{,}089 \pm 0{,}007$ & $0{,}911$ \\
-    \addlinespace
-    $\rho$  & $0{,}2$ & $0{,}403 \pm 0{,}031$ & $0{,}597$ & $0{,}123 \pm 0{,}010$ & $0{,}877$ \\
-            & $0{,}4$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-            & $0{,}6$ & $0{,}424 \pm 0{,}028$ & $0{,}576$ & $0{,}137 \pm 0{,}011$ & $0{,}863$ \\
-    \addlinespace
-    $k$     & $0{,}1\%$ & $0{,}329 \pm 0{,}031$ & $0{,}671$ & $0{,}032 \pm 0{,}006$ & $0{,}968$ \\
-            & $0{,}5\%$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-            & $1{,}0\%$ & $0{,}447 \pm 0{,}028$ & $0{,}553$ & $0{,}230 \pm 0{,}012$ & $0{,}770$ \\
-    \addlinespace
-    $f$     & $0{,}10$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}026 \pm 0{,}003$ & $0{,}974$ \\
-            & $0{,}25$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-            & $0{,}40$ & $0{,}520 \pm 0{,}029$ & $0{,}480$ & $0{,}363 \pm 0{,}023$ & $0{,}637$ \\
-    \addlinespace
-    $p_s$   & $0{,}25$ & $0{,}340 \pm 0{,}020$ & $0{,}660$ & $0{,}058 \pm 0{,}005$ & $0{,}942$ \\
-            & $0{,}50$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-            & $0{,}75$ & $0{,}481 \pm 0{,}030$ & $0{,}519$ & $0{,}276 \pm 0{,}018$ & $0{,}724$ \\
-    \addlinespace
-    $\lambda$ & $0{,}4$ & $0{,}307 \pm 0{,}021$ & $0{,}693$ & $0{,}054 \pm 0{,}005$ & $0{,}946$ \\
-              & $0{,}6$ & $0{,}412 \pm 0{,}026$ & $0{,}588$ & $0{,}130 \pm 0{,}010$ & $0{,}870$ \\
-              & $0{,}8$ & $0{,}485 \pm 0{,}031$ & $0{,}515$ & $0{,}260 \pm 0{,}019$ & $0{,}740$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\section{Métricas estructurales completas de las redes}
+\subsection*{Métricas estructurales completas de las redes}
 \label{anexo:metricas-redes}
 
 La Tabla~\ref{tab:anexo-metricas} recoge el conjunto completo de métricas estructurales de las cuatro topologías estudiadas, calculadas con el notebook \texttt{grafos\_metricas.ipynb} sobre instancias dirigidas con semilla fija (\texttt{seed}~$=42$). Las topologías sintéticas se generan con $n = 10\,000$ nodos; el dataset empírico SNAP (\emph{ego-Facebook}) tiene $n = 4\,039$. La Tabla~\ref{tab:topologias} del cuerpo principal selecciona un subconjunto de estas métricas para la discusión.
@@ -736,6 +716,51 @@ La Tabla~\ref{tab:anexo-metricas} recoge el conjunto completo de métricas estru
     \addlinespace
     Exponente $\gamma_{\mathrm{in}}$     & 1{,}218   & 1{,}175     & 1{,}686   & 1{,}259 \\
     Exponente $\gamma_{\mathrm{out}}$    & 1{,}218   & 1{,}175     & 1{,}901   & 1{,}259 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection*{Hiperparámetros y resultados extendidos del barrido OFAT}
+
+La Tabla~\ref{tab:anexo-sweep} recoge los valores completos de tasa de ataque media y desviación estándar para todas las celdas del barrido experimental (7 factores $\times$ niveles $\times$ 2 topologías, 50 réplicas MC cada una, $N=10\,000$).
+
+\begin{table}[ht]
+  \centering
+  \small
+  \caption{Resultados completos del barrido OFAT. Tasa de ataque media $\pm \sigma$ y resiliencia $R = 1 - a$ para cada celda experimental.}
+  \label{tab:anexo-sweep}
+  \begin{tabular}{@{}l l c c c c@{}}
+    \toprule
+    \textbf{Factor} & \textbf{Nivel} & \multicolumn{2}{c}{\textbf{Libre de escala}} & \multicolumn{2}{c}{\textbf{Mundo pequeño}} \\
+    \cmidrule(lr){3-4} \cmidrule(lr){5-6}
+    & & $a \pm \sigma$ & $R$ & $a \pm \sigma$ & $R$ \\
+    \midrule
+    $\gamma$ & $0{,}25$ & $0{,}098 \pm 0{,}010$ & $0{,}902$ & $0{,}011 \pm 0{,}002$ & $0{,}989$ \\
+             & $0{,}50$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+             & $0{,}75$ & $0{,}308 \pm 0{,}024$ & $0{,}692$ & $0{,}172 \pm 0{,}014$ & $0{,}828$ \\
+    \addlinespace
+    Semilla & \emph{hubs} & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+            & \emph{random} & $0{,}015 \pm 0{,}019$ & $0{,}985$ & $0{,}046 \pm 0{,}005$ & $0{,}954$ \\
+    \addlinespace
+    $\rho$  & $0{,}2$ & $0{,}199 \pm 0{,}020$ & $0{,}801$ & $0{,}052 \pm 0{,}007$ & $0{,}948$ \\
+            & $0{,}4$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+            & $0{,}6$ & $0{,}228 \pm 0{,}019$ & $0{,}773$ & $0{,}067 \pm 0{,}007$ & $0{,}933$ \\
+    \addlinespace
+    $k$     & $0{,}1$\,\% & $0{,}135 \pm 0{,}022$ & $0{,}865$ & $0{,}013 \pm 0{,}004$ & $0{,}987$ \\
+            & $0{,}5$\,\% & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+            & $1{,}0$\,\% & $0{,}251 \pm 0{,}018$ & $0{,}749$ & $0{,}115 \pm 0{,}009$ & $0{,}885$ \\
+    \addlinespace
+    $f$     & $0{,}05$ & $0{,}122 \pm 0{,}014$ & $0{,}878$ & $0{,}018 \pm 0{,}002$ & $0{,}982$ \\
+            & $0{,}10$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+            & $0{,}15$ & $0{,}295 \pm 0{,}026$ & $0{,}705$ & $0{,}134 \pm 0{,}012$ & $0{,}866$ \\
+    \addlinespace
+    $p_s$   & $0{,}25$ & $0{,}148 \pm 0{,}014$ & $0{,}853$ & $0{,}023 \pm 0{,}003$ & $0{,}977$ \\
+            & $0{,}50$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+            & $0{,}75$ & $0{,}282 \pm 0{,}027$ & $0{,}718$ & $0{,}120 \pm 0{,}010$ & $0{,}880$ \\
+    \addlinespace
+    $\lambda$ & $0{,}4$ & $0{,}140 \pm 0{,}014$ & $0{,}860$ & $0{,}022 \pm 0{,}003$ & $0{,}979$ \\
+              & $0{,}6$ & $0{,}218 \pm 0{,}018$ & $0{,}782$ & $0{,}060 \pm 0{,}006$ & $0{,}940$ \\
+              & $0{,}8$ & $0{,}283 \pm 0{,}024$ & $0{,}717$ & $0{,}123 \pm 0{,}013$ & $0{,}877$ \\
     \bottomrule
   \end{tabular}
 \end{table}
