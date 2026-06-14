@@ -544,11 +544,11 @@ El factor \texttt{seed\_strategy} aísla el papel de la estructura: compara semb
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.72\linewidth]{images/sweep_hubs_vs_random.png}
-  \caption{Tasa de ataque (media $\pm 1\,\sigma$) según la estrategia de siembra. La brecha hubs--aleatorio es enorme en la red libre de escala ($0{,}22$ frente a $0{,}02$) y prácticamente nula en mundo pequeño.}
+  \caption{Tasa de ataque (media $\pm 1\,\sigma$) según la estrategia de siembra. La brecha hubs--aleatorio es enorme en la red libre de escala ($0{,}22$ frente a $0{,}015$) y prácticamente nula en mundo pequeño.}
   \label{fig:sweep-hubs}
 \end{figure}
 
-El resultado es contundente (Figura~\ref{fig:sweep-hubs}). Sobre la red \textbf{libre de escala}, sembrar en hubs eleva la tasa de ataque a $a = 0{,}22$, frente a $a = 0{,}015$ con siembra aleatoria: dirigir el mismo presupuesto de semillas a los hubs multiplica por más de catorce el alcance de la campaña. Sobre la red de \textbf{mundo pequeño}, en cambio, la diferencia es marginal ($a = 0{,}06$ con hubs frente a $a = 0{,}05$ aleatorio), porque su grado casi homogéneo carece de nodos que concentren audiencia. La conclusión metodológica es nítida: \emph{la vulnerabilidad de la red libre de escala es, en lo esencial, el fenómeno de los hubs}; sin la posibilidad de identificarlos y atacarlos, su ventaja para el atacante se desvanece. Esto explica además la mayor dispersión observada en la siembra aleatoria sobre libre de escala (Secc.~\ref{fig:sweep-marginal}): el resultado depende de si el azar acierta o no a incluir algún hub entre las semillas.
+El resultado es contundente (Figura~\ref{fig:sweep-hubs}). Sobre la red \textbf{libre de escala}, sembrar en hubs eleva la tasa de ataque a $a = 0{,}22$, frente a $a = 0{,}015$ con siembra aleatoria: dirigir el mismo presupuesto de semillas a los hubs multiplica por más de catorce el alcance de la campaña. Sobre la red de \textbf{mundo pequeño}, en cambio, la diferencia es marginal ($a = 0{,}06$ con hubs frente a $a = 0{,}05$ aleatorio), porque su grado casi homogéneo carece de nodos que concentren audiencia. La conclusión metodológica es nítida: \emph{la vulnerabilidad de la red libre de escala es, en lo esencial, el fenómeno de los hubs}; sin la posibilidad de identificarlos y atacarlos, su ventaja para el atacante se desvanece. Esto explica además la mayor dispersión observada en la siembra aleatoria sobre libre de escala (Figura~\ref{fig:sweep-marginal}): el resultado depende de si el azar acierta o no a incluir algún hub entre las semillas.
 
 \subsection{Factores de composición: fracción susceptible y carga emocional}
 
